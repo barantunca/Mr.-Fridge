@@ -1,0 +1,26 @@
+backend_repo/
+├── main.py                  # Uygulamanın ayağa kalktığı ana giriş noktası
+├── requirements.txt         # Projenin bağımlılıkları (görüntü işleme, yapay zeka kütüphaneleri vs.)
+├── .env                     # Dış servislerin senden istediği API key'lerin tutulduğu gizli dosya
+├── .gitignore               # .env ve gereksiz dosyaların repoya gitmesini engeller
+├── api/                     # Frontend'den gelen istekleri (Endpoint/Route) karşılayan katman
+│   ├── routes_auth.py       # Giriş yapma işlemleri
+│   ├── routes_house.py      # Ev seçimi ve ev verileri
+│   ├── routes_inventory.py  # Envanter görüntüleme ve manuel eşya ekleme
+│   ├── routes_camera.py     # Kameradan gelen istekleri karşılayan uç nokta
+│   └── routes_recipe.py     # Tarif önerisi için generate isteğini karşılayan uç nokta
+├── core/                    # Projenin yapılandırma dosyaları
+│   ├── config.py            # .env dosyasındaki API key'leri okuyup projeye dağıtan ayar dosyası
+│   └── security.py          # Kullanıcı yetkilendirme (Token/JWT) işlemleri
+├── services/                # Asıl iş mantığının (Business Logic) çalıştığı katman
+│   ├── vision_service.py    # Gelen base64 formatındaki görüntüyü çözüp işleyen ve nesneleri Türkçe (örneğin "süt") olarak çıkaran servis
+│   ├── llm_service.py       # Seçilen malzemeleri alıp, Türkçe dil destekli yemek tarifi generate eden servis
+│   └── inventory_service.py # Eşyaları miktar bağımsız, isim isim ve kategorize ederek frontend'e hazırlayan mantık
+├── models/                  # Veritabanı tablolarının (ORM) tanımlandığı yer
+│   ├── user.py              
+│   ├── house.py             
+│   ├── item.py              # Eşya adı, kategorisi ve bağlı olduğu ev ID'si
+│   └── recipe.py            
+└── schemas/                 # Gelen ve giden verilerin formatını ve doğruluğunu kontrol eden şemalar
+    ├── request_schemas.py   # Örn: Kameradan base64 string ve kullanıcı ID'si bekleyen şema
+    └── response_schemas.py  # Örn: Frontend'e dönecek kategorize edilmiş envanter veya tarif şeması
