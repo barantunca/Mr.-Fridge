@@ -1,10 +1,10 @@
 from pydantic import BaseModel
-from typing import List, Dict
+from typing import List
 
 
 # Envantere eşya eklerken mobil uygulamadan beklediğimiz veri
 class ItemCreateRequest(BaseModel):
-    house_id: int
+    fridge_id: int  # house_id yerine fridge_id oldu
     name: str
     category: str = "Diğer"
 
