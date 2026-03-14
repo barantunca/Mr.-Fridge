@@ -1,16 +1,16 @@
 from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
 from schemas.api_schemas import RecipeGenerateRequest
-from services.llm_service import generate_recipe_from_ingredients
+from services.llm_service import generate_recipe_stream
 
 router = APIRouter(prefix="/recipe", tags=["Recipe"])
-
 
 @router.post("/generate")
 async def generate_recipe(request: RecipeGenerateRequest):
     """
-    Seçilen malzemeleri OpenAI'a yollar ve Türkçe yemek tarifi döner.
+    Seçilen malzemeleri OpenAI'a yollar ve Türkçe yemek tarifini anlık (stream) olarak döner.
     """
-    # Try-catch yok! OpenAI patlarsa veya malzeme boş gelirse Global Handler halledecek.
-    recipe_text = generate_recipe_from_ingredients(request.ingredients)
-
-    return {"status": "success", "recipe": recipe_text}
+    return StreamingResponse(
+        generate_recipe_stream(request.ingredients), 
+        media_type="text/event-stream"
+    )

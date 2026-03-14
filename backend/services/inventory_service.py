@@ -1,24 +1,39 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from models.item import Item
 from typing import Dict, List
+import time
 
+# Basit bir In-Memory Önbellek (Performans için)
+_inventory_cache = {}
+CACHE_TTL = 60 # Saniye cinsinden cache süresi
 
-def add_item_to_inventory(
-    db: Session, fridge_id: int, item_name: str, category: str = "Genel"
+async def add_item_to_inventory(
+    db: AsyncSession, fridge_id: int, item_name: str, category: str = "Genel"
 ) -> Item:
     new_item = Item(fridge_id=fridge_id, name=item_name, category=category)
 
     db.add(new_item)
-    db.commit()
-    db.refresh(new_item)
+    await db.commit()
+    await db.refresh(new_item)
+
+    # Yeni eşya eklendiğinde cache'i temizle ki liste güncellensin
+    if fridge_id in _inventory_cache:
+        del _inventory_cache[fridge_id]
 
     return new_item
 
-
-def get_categorized_inventory_for_recipe(
-    db: Session, fridge_id: int
+async def get_categorized_inventory_for_recipe(
+    db: AsyncSession, fridge_id: int
 ) -> Dict[str, List[str]]:
+    
+    current_time = time.time()
+    # Cache kontrolü
+    if fridge_id in _inventory_cache:
+        cache_data, timestamp = _inventory_cache[fridge_id]
+        if current_time - timestamp < CACHE_TTL:
+            return cache_data
+
     stmt = (
         select(Item.category, Item.name)
         .where(Item.fridge_id == fridge_id)
@@ -26,7 +41,9 @@ def get_categorized_inventory_for_recipe(
         .order_by(Item.category, Item.name)
     )
 
-    results = db.execute(stmt).all()
+    result = await db.execute(stmt)
+    results = result.all()
+    
     categorized_inventory = {}
 
     for category, name in results:
@@ -35,13 +52,18 @@ def get_categorized_inventory_for_recipe(
             categorized_inventory[cat_key] = []
         categorized_inventory[cat_key].append(name)
 
+    # Sonucu önbelleğe al
+    _inventory_cache[fridge_id] = (categorized_inventory, current_time)
+
     return categorized_inventory
 
-
-def delete_item_from_inventory(db: Session, item_id: int) -> bool:
-    item = db.query(Item).filter(Item.id == item_id).first()
+async def delete_item_from_inventory(db: AsyncSession, item_id: int) -> bool:
+    stmt = select(Item).filter(Item.id == item_id)
+    result = await db.execute(stmt)
+    item = result.scalar_first()
+    
     if item:
-        db.delete(item)
-        db.commit()
+        await db.delete(item)
+        await db.commit()
         return True
     return False

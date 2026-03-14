@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from core.database import engine, Base
 
@@ -8,7 +9,7 @@ from core.exceptions import (
     global_exception_handler,
 )
 
-# House yerine Fridge modelini import ediyoruz
+# Modelleri import ediyoruz
 from models.fridge import Fridge
 from models.item import Item
 
@@ -16,25 +17,29 @@ from models.item import Item
 from api.routes_inventory import router as inventory_router
 from api.routes_recipe import router as recipe_router
 
-# 1. Veritabanı tablolarını oluştur
-Base.metadata.create_all(bind=engine)
+# Asenkron Tablo Oluşturma (Lifespan mantığı)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
 
-# 2. FastAPI Uygulamasını Başlat
+# FastAPI Uygulamasını Başlat
 app = FastAPI(
     title="Mr.Fridge API",
-    description="Akıllı Envanter ve Tarif Üretme Sistemi",
-    version="1.0.0",
+    description="Akıllı Envanter ve Tarif Üretme Sistemi (Performans Sürümü)",
+    version="1.1.0",
+    lifespan=lifespan
 )
 
-# 3. Global Hata Yakalayıcıları Sisteme Kaydet
+# Global Hata Yakalayıcıları Sisteme Kaydet
 app.add_exception_handler(MrFridgeException, mrfridge_exception_handler)
 app.add_exception_handler(Exception, global_exception_handler)
 
-# 4. Uç Noktaları (Router'ları) Uygulamaya Bağla
+# Uç Noktaları (Router'ları) Uygulamaya Bağla
 app.include_router(inventory_router)
 app.include_router(recipe_router)
 
-
 @app.get("/")
 async def root():
-    return {"message": "Mr.Fridge Backend Sistemine Hoş Geldiniz!"}
+    return {"message": "Mr.Fridge Backend Sistemine Hoş Geldiniz! (Asenkron Sürüm Aktif)"}

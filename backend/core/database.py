@@ -1,24 +1,29 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.orm import declarative_base
 
-# Geliştirme için yerel SQLite veritabanı url'si
-SQLALCHEMY_DATABASE_URL = "sqlite:///./mrfridge.db"
+# aiosqlite asenkron driver'ını kullanıyoruz
+SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///./mrfridge.db"
 
-# SQLite'ın çoklu thread (FastAPI) ile sorunsuz çalışması için check_same_thread=False yapıyoruz
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+engine = create_async_engine(
+    SQLALCHEMY_DATABASE_URL, 
+    connect_args={"check_same_thread": False},
+    echo=False # Canlıda performansı etkilememesi için logları kapatıyoruz
 )
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# Async oturum yöneticisi
+SessionLocal = async_sessionmaker(
+    autocommit=False, 
+    autoflush=False, 
+    bind=engine, 
+    class_=AsyncSession
+)
 
-# Tüm modellerimizin (House, Item) miras alacağı temel sınıf
 Base = declarative_base()
 
-
-# Uç noktalarda (Route) veritabanı oturumu açıp kapatmak için Dependency (Bağımlılık) fonksiyonu
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# Dependency: Asenkron veritabanı oturumu
+async def get_db():
+    async with SessionLocal() as db:
+        try:
+            yield db
+        finally:
+            await db.close()

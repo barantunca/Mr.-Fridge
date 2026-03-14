@@ -1,16 +1,17 @@
 import os
-from openai import OpenAI
+from openai import AsyncOpenAI
 from typing import List
 from dotenv import load_dotenv
 
 load_dotenv()
 API_KEY = os.getenv("OPENAI_API_KEY")
-client = OpenAI(api_key=API_KEY)
+client = AsyncOpenAI(api_key=API_KEY)
 
-
-def generate_recipe_from_ingredients(selected_ingredients: List[str]) -> str:
+async def generate_recipe_stream(selected_ingredients: List[str]):
+    """Yemek tarifini asenkron olarak ve parça parça (chunk) üretir."""
     if not selected_ingredients:
-        raise ValueError("Tarif üretebilmek için en az bir malzeme seçmelisiniz.")
+        yield "Tarif üretebilmek için en az bir malzeme seçmelisiniz."
+        return
 
     ingredients_str = ", ".join(selected_ingredients)
 
@@ -23,21 +24,20 @@ def generate_recipe_from_ingredients(selected_ingredients: List[str]) -> str:
     )
 
     try:
-        response = client.chat.completions.create(
+        response = await client.chat.completions.create(
             model="gpt-4o",
             messages=[
-                {
-                    "role": "system",
-                    "content": "Sen Mr.Fridge uygulaması içinde çalışan, pratik, yaratıcı ve israfı önleyen uzman bir şefsin.",
-                },
+                {"role": "system", "content": "Sen Mr.Fridge uygulaması içinde çalışan, pratik, yaratıcı ve israfı önleyen uzman bir şefsin."},
                 {"role": "user", "content": prompt},
             ],
             max_tokens=800,
             temperature=0.7,
+            stream=True  # Akış modunu açtık
         )
-        return response.choices[0].message.content.strip()
+        
+        async for chunk in response:
+            if chunk.choices[0].delta.content is not None:
+                yield chunk.choices[0].delta.content
 
     except Exception as e:
-        raise Exception(
-            f"Yapay zeka tarifi hazırlarken bir sorunla karşılaştı: {str(e)}"
-        )
+        yield f"\n[Hata oluştu: {str(e)}]"
