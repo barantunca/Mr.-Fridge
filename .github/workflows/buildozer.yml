@@ -1,0 +1,25 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kodu İndir
+        uses: actions/checkout@v4
+
+      - name: Buildozer ile APK Derle
+        uses: kivy/buildozer-action@v2
+        with:
+          buildozer_version: latest
+          command: buildozer android debug
+
+      - name: APK Dosyasını Kaydet
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mr-Fridge-Android-APK
+          path: bin/*.apk

@@ -67,3 +67,15 @@ async def delete_item_from_inventory(db: AsyncSession, item_id: int) -> bool:
         await db.commit()
         return True
     return False
+
+
+async def get_all_items_for_fridge(db: AsyncSession, fridge_id: int):
+    """Buzdolabındaki tüm eşyaları id, name, category ile döner."""
+    stmt = (
+        select(Item.id, Item.name, Item.category)
+        .where(Item.fridge_id == fridge_id)
+        .order_by(Item.category, Item.name)
+    )
+    result = await db.execute(stmt)
+    rows = result.all()
+    return [{"id": r.id, "name": r.name, "category": r.category or "Diğer"} for r in rows]
