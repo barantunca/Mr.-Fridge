@@ -3,7 +3,7 @@ main_window.py — ScreenManager + Bottom Navigation + FAB Pop-up
 """
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.screenmanager import ScreenManager, FadeTransition
+from kivy.uix.screenmanager import ScreenManager, SlideTransition
 from kivy.uix.button import Button
 from kivy.uix.widget import Widget
 from kivy.graphics import Color, RoundedRectangle, Ellipse
@@ -116,7 +116,7 @@ class MainWindow(FloatLayout):
         self.bind(pos=self._update_bg, size=self._update_bg)
 
         # ── SCREEN MANAGER ─────────────────────────────────────────────────────
-        self.sm = ScreenManager(transition=FadeTransition(duration=0.15))
+        self.sm = ScreenManager(transition=SlideTransition(duration=0.25))
         self.sm.add_widget(HomeScreen(name="home"))
         self.sm.add_widget(InventoryScreen(name="inventory"))
         self.sm.add_widget(RecipeScreen(name="recipe"))
@@ -170,6 +170,17 @@ class MainWindow(FloatLayout):
         self.fab_menu.open()
 
     def _switch_screen(self, name: str):
+        if getattr(self, 'sm', None) and self.sm.current:
+            try:
+                current_idx = [t[0] for t in TABS].index(self.sm.current)
+                target_idx = [t[0] for t in TABS].index(name)
+                if target_idx > current_idx:
+                    self.sm.transition.direction = 'left'
+                elif target_idx < current_idx:
+                    self.sm.transition.direction = 'right'
+            except ValueError:
+                pass
+                
         self.sm.current = name
         for sname, btn in self._nav_buttons.items():
             btn.set_active(sname == name)
@@ -181,3 +192,26 @@ class MainWindow(FloatLayout):
     def _update_nav_bg(self, *args):
         self._nav_rect.pos = self.nav_bar.pos
         self._nav_rect.size = self.nav_bar.size
+
+    def on_touch_down(self, touch):
+        if touch.y > dp(70):
+            touch.ud['swipe_x'] = touch.x
+            touch.ud['swipe_y'] = touch.y
+        return super().on_touch_down(touch)
+
+    def on_touch_up(self, touch):
+        if 'swipe_x' in touch.ud:
+            dx = touch.x - touch.ud['swipe_x']
+            dy = touch.y - touch.ud['swipe_y']
+            if abs(dx) > dp(50) and abs(dx) > abs(dy):
+                try:
+                    current_idx = [t[0] for t in TABS].index(self.sm.current)
+                    if dx < 0 and current_idx < len(TABS) - 1:
+                        self._switch_screen(TABS[current_idx + 1][0])
+                        return True
+                    elif dx > 0 and current_idx > 0:
+                        self._switch_screen(TABS[current_idx - 1][0])
+                        return True
+                except ValueError:
+                    pass
+        return super().on_touch_up(touch)

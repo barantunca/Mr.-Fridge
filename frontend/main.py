@@ -35,7 +35,7 @@ class MrFridgeApp(App):
         return MainWindow()
 
     def on_start(self):
-        print("✅ Mr. Fridge uygulaması başlatıldı.")
+        print("[OK] Mr. Fridge uygulamasi baslatildi.")
 
 
 if __name__ == "__main__":
