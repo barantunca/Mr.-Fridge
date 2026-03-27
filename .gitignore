@@ -45,3 +45,8 @@ android/build/
 
 .env
 __pycache__/
+
+# Build and Environments
+venv/
+.buildozer/
+bin/
