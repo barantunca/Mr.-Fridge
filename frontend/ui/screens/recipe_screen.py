@@ -56,7 +56,7 @@ class RecipeScreen(Screen):
             color=ACCENT2,
         ))
         # Maskot resmi (görsel olarak tatlı dursun diye köşeye eklendi)
-        mascot = Image(source='frontend/assets/mascot_2.jpg', size_hint=(None, None), size=(dp(40), dp(40)))
+        mascot = Image(source='assets/mascot_2.jpg', size_hint=(None, None), size=(dp(40), dp(40)))
         ing_header.add_widget(mascot)
         
         ing_card.add_widget(ing_header)

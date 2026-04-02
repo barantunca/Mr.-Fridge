@@ -1,20 +1,20 @@
 """
 scan_screen.py — Kamera Tarama ekranı
-OpenCV ile canlı kamera akışını çeker, kareyi base64'e çevirir,
+Kivy native Camera ile canlı akışı çeker, kareyi base64'e çevirir,
 backend /camera/scan endpoint'ine gönderir, sonuç gösterir
 ve onaylanınca /inventory/add'e ekler.
 """
 import base64
 import threading
-from io import BytesIO
+import io
+from PIL import Image as PILImage
 
 from kivy.uix.screenmanager import Screen
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.image import Image as KivyImage
+from kivy.uix.camera import Camera
 from kivy.uix.label import Label
 from kivy.uix.widget import Widget
 from kivy.clock import Clock
-from kivy.graphics.texture import Texture
 from kivy.metrics import dp
 
 import api_client
@@ -24,20 +24,11 @@ from ui.theme import (
 )
 from ui.widgets import CardWidget, StyledLabel, GradientButton, SuccessButton, Divider
 
-try:
-    import cv2
-    CV2_AVAILABLE = True
-except ImportError:
-    CV2_AVAILABLE = False
-
 
 class ScanScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._capture = None
-        self._clock_event = None
-        self._last_frame_bytes = None
-        self._scan_result = None  # {"name": str, "category": str}
+        self._scan_result = {}  # {"name": str, "category": str}
         self._build_ui()
 
     def _build_ui(self):
@@ -54,13 +45,15 @@ class ScanScreen(Screen):
         root.add_widget(title)
 
         # ── KAMERA GÖRÜNTÜSÜ ───────────────────────────────────────────────────
-        self.camera_image = KivyImage(
+        self.camera_widget = Camera(
+            play=False,
+            resolution=(640, 480),
             allow_stretch=True,
             keep_ratio=True,
             size_hint_y=0.5,
         )
         camera_card = CardWidget(padding=dp(4), size_hint_y=0.5)
-        camera_card.add_widget(self.camera_image)
+        camera_card.add_widget(self.camera_widget)
         root.add_widget(camera_card)
 
         # ── TARA BUTONU ────────────────────────────────────────────────────────
@@ -113,57 +106,35 @@ class ScanScreen(Screen):
 
     def on_enter(self, *args):
         """Ekrana girilince kamerayı başlat."""
-        if CV2_AVAILABLE:
-            self._capture = cv2.VideoCapture(0)
-            self._clock_event = Clock.schedule_interval(self._update_frame, 1 / 30)
-        else:
-            self.camera_image.source = ""
-            self.result_name_lbl.text = "⚠️ opencv-python yüklü değil.\nPip: pip install opencv-python"
+        self.camera_widget.play = True
 
     def on_leave(self, *args):
         """Ekrandan çıkınca kamerayı kapat."""
-        if self._clock_event:
-            self._clock_event.cancel()
-        if self._capture:
-            self._capture.release()
-            self._capture = None
-
-    # ── KAMERA FRAME GÜNCELLEME ───────────────────────────────────────────────
-
-    def _update_frame(self, dt):
-        if not self._capture or not self._capture.isOpened():
-            return
-        ret, frame = self._capture.read()
-        if not ret:
-            return
-
-        # Frame'i sakla (tarama için kullanılacak)
-        ret2, jpeg = cv2.imencode(".jpg", frame)
-        if ret2:
-            self._last_frame_bytes = jpeg.tobytes()
-
-        # Kivy texture'a çevir (BGR → RGB)
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        frame_flipped = cv2.flip(frame_rgb, 0)
-        h, w, _ = frame_flipped.shape
-        texture = Texture.create(size=(w, h), colorfmt="rgb")
-        texture.blit_buffer(frame_flipped.tobytes(), colorfmt="rgb", bufferfmt="ubyte")
-        self.camera_image.texture = texture
+        self.camera_widget.play = False
 
     # ── TARAMA ────────────────────────────────────────────────────────────────
 
     def _on_scan(self, *args):
-        if not self._last_frame_bytes:
-            self.result_name_lbl.text = "⚠️ Kamera hazır değil."
+        if not self.camera_widget.texture:
+            self.result_name_lbl.text = "⚠️ Kamera henüz hazır değil."
             return
 
         self.scan_btn.disabled = True
         self.scan_btn.text = "⏳  Analiz ediliyor…"
-        self.result_name_lbl.text = "GPT-4o ile analiz ediliyor…"
+        self.result_name_lbl.text = "Yapay zeka ile analiz ediliyor…"
         self.result_cat_lbl.text = ""
         self.add_btn.disabled = True
 
-        b64 = base64.b64encode(self._last_frame_bytes).decode("utf-8")
+        texture = self.camera_widget.texture
+        size = texture.size
+        pixels = texture.pixels
+
+        # PIL ile Kivy Texture'ü RGBA'dan JPEG'e çeviriyoruz
+        img = PILImage.frombytes('RGBA', size, pixels)
+        buf = io.BytesIO()
+        img.save(buf, format='JPEG')
+        b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+
         threading.Thread(target=self._do_scan, args=(b64,), daemon=True).start()
 
     def _do_scan(self, b64: str):
@@ -203,5 +174,5 @@ class ScanScreen(Screen):
         else:
             self.result_name_lbl.text = f"✅  {name} envantere eklendi!"
             self.result_cat_lbl.text = ""
-            self._scan_result = None
+            self._scan_result = {}
         self.add_btn.disabled = False

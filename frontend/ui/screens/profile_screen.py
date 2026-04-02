@@ -26,7 +26,7 @@ class ProfileScreen(Screen):
         
         # Daire şeklinde maskot
         avatar_label = Image(
-            source='frontend/assets/mascot_3.jpg',
+            source='assets/mascot_3.jpg',
             size_hint_y=None, 
             height=dp(80)
         )

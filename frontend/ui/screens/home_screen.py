@@ -100,7 +100,7 @@ class HomeScreen(Screen):
         alert_content = CardWidget(orientation="horizontal", padding=[dp(12), dp(10)], spacing=dp(12))
         
         # Mascot Görseli
-        mascot = Image(source='frontend/assets/mascot_1.jpg', size_hint_x=None, width=dp(40))
+        mascot = Image(source='assets/mascot_1.jpg', size_hint_x=None, width=dp(40))
         alert_content.add_widget(mascot)
         
         texts = BoxLayout(orientation="vertical")

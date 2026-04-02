@@ -159,7 +159,7 @@ class CustomTopBar(BoxLayout):
         super().__init__(**kwargs)
         
         # Maskot İkonu
-        self.add_widget(Image(source='frontend/assets/mascot_4.jpg', size_hint_x=None, width=dp(40)))
+        self.add_widget(Image(source='assets/mascot_4.jpg', size_hint_x=None, width=dp(40)))
         
         # Başlık
         self.title_lbl = StyledLabel(text=title_text, font_size=SIZE_TITLE, bold=True, halign="center", color=TEXT_PRI)
@@ -206,7 +206,7 @@ class ProductCard(CardWidget):
         super().__init__(**kwargs)
         
         # Resim (Maskot olarak)
-        self.add_widget(Image(source='frontend/assets/mascot_4.jpg', size_hint_y=None, height=dp(50)))
+        self.add_widget(Image(source='assets/mascot_4.jpg', size_hint_y=None, height=dp(50)))
         
         # İsim
         self.add_widget(StyledLabel(text=name, font_size=SIZE_BODY, bold=True, halign="center", size_hint_y=None, height=dp(20)))
