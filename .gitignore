@@ -5,10 +5,7 @@
 *.pyc
 *.swp
 .DS_Store
-.atom/
-.buildlog/
 .history
-.svn/
 
 # Flutter/Dart/Pub
 .dart_tool/
@@ -48,5 +45,6 @@ __pycache__/
 
 # Build and Environments
 venv/
+.venv_kivy/
 .buildozer/
 bin/

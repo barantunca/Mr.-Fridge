@@ -50,5 +50,9 @@ async def scan_item(request: ScanRequest):
         item_name = await identify_item_from_base64(request.base64_image)
         category = guess_category(item_name)
         return ScanResponse(name=item_name, category=category)
+    except ValueError as e:
+        # API key eksik veya geçersiz — kullanılabilir hata mesajı
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Sunucu hatası: {str(e)}")
+
