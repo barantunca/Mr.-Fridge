@@ -100,3 +100,39 @@ def generate_recipe_stream(ingredients: list):
                     yield chunk.decode("utf-8")
     except Exception as e:
         yield f"\n[Hata: {e}]"
+
+
+# ── SETTINGS ──────────────────────────────────────────────────────────────────
+
+def get_api_key_status() -> dict:
+    """GET /settings/api-key → {has_key, masked_key, message}"""
+    try:
+        resp = requests.get(f"{BASE_URL}/settings/api-key", timeout=8)
+        resp.raise_for_status()
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e), "has_key": False, "masked_key": "—", "message": ""}
+
+
+def save_api_key(api_key: str) -> dict:
+    """POST /settings/api-key — yeni key'i backend'e kaydet."""
+    try:
+        resp = requests.post(
+            f"{BASE_URL}/settings/api-key",
+            json={"api_key": api_key},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        return resp.json()
+    except Exception as e:
+        return _handle_error(e)
+
+
+def delete_api_key() -> dict:
+    """DELETE /settings/api-key — kayıtlı key'i sil."""
+    try:
+        resp = requests.delete(f"{BASE_URL}/settings/api-key", timeout=8)
+        resp.raise_for_status()
+        return resp.json()
+    except Exception as e:
+        return _handle_error(e)

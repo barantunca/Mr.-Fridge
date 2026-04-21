@@ -43,8 +43,33 @@ android/build/
 .env
 __pycache__/
 
-# Build and Environments
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+
+# Virtual Environments (tüm venv pattern'leri)
 venv/
-.venv_kivy/
+.venv/
+.venv_*/
+env/
+ENV/
+
+# Database
+*.db
+*.sqlite3
+
+# Build and Environments
 .buildozer/
 bin/
+dist/
+*.egg-info/
+
+# Kivy
+.kivy/
+
+# OS
+Thumbs.db

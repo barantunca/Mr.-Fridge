@@ -17,6 +17,7 @@ from models.item import Item
 from api.routes_inventory import router as inventory_router
 from api.routes_recipe import router as recipe_router
 from api.routes_camera import router as camera_router
+from api.routes_settings import router as settings_router
 
 # Asenkron Tablo Oluşturma (Lifespan mantığı)
 @asynccontextmanager
@@ -41,6 +42,7 @@ app.add_exception_handler(Exception, global_exception_handler)
 app.include_router(inventory_router)
 app.include_router(recipe_router)
 app.include_router(camera_router)
+app.include_router(settings_router)
 
 @app.get("/")
 async def root():

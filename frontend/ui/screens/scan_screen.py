@@ -1,21 +1,24 @@
 """
 scan_screen.py — Kamera Tarama ekranı
-Kivy native Camera ile canlı akışı çeker, kareyi base64'e çevirir,
+OpenCV (CAP_DSHOW) ile canlı akışı çeker, kareyi base64'e çevirir,
 backend /camera/scan endpoint'ine gönderir, sonuç gösterir
 ve onaylanınca /inventory/add'e ekler.
 """
 import base64
 import threading
 import io
+import numpy as np
 from PIL import Image as PILImage
 
 from kivy.uix.screenmanager import Screen
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.widget import Widget
 from kivy.uix.button import Button
+from kivy.uix.image import Image as KivyImage
 from kivy.clock import Clock
 from kivy.metrics import dp
 from kivy.graphics import Color, RoundedRectangle
+from kivy.graphics.texture import Texture
 
 import api_client
 from ui.theme import (
@@ -29,8 +32,10 @@ class ScanScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._scan_result = {}
-        self._camera_widget = None
-        self._camera_card = None
+        self._cap = None            # cv2.VideoCapture nesnesi
+        self._camera_image = None   # KivyImage (canvas'ta gösterim)
+        self._clock_event = None    # Clock döngüsü
+        self._last_frame = None     # Son yakalanan ham frame (numpy array)
         self._build_ui()
 
     def _build_ui(self):
@@ -61,8 +66,7 @@ class ScanScreen(Screen):
         top_bar.add_widget(Widget(size_hint_x=None, width=dp(80)))
         self.root_layout.add_widget(top_bar)
 
-        # ── KAMERA PLACEHOLDER ────────────────────────────────────────────────
-        # Gerçek kamera widget'ı on_enter'da oluşturulur
+        # ── KAMERA ALANI ────────────────────────────────────────────────────
         self.camera_placeholder = CardWidget(
             padding=dp(4), size_hint_y=0.5,
             orientation="vertical",
@@ -74,6 +78,11 @@ class ScanScreen(Screen):
             halign="center",
         )
         self.camera_placeholder.add_widget(self.camera_status_lbl)
+
+        # KivyImage — kare buraya yazılacak
+        self._camera_image = KivyImage(allow_stretch=True, keep_ratio=True)
+        self.camera_placeholder.add_widget(self._camera_image)
+
         self.root_layout.add_widget(self.camera_placeholder)
 
         # ── TARA BUTONU ────────────────────────────────────────────────────────
@@ -124,7 +133,7 @@ class ScanScreen(Screen):
     # ── EKRAN GİRİŞ/ÇIKIŞ ────────────────────────────────────────────────────
 
     def on_enter(self, *args):
-        """Ekrana girilince kamerayı başlat (lazy)."""
+        """Ekrana girilince kamerayı başlat."""
         self._scan_result = {}
         self.result_name_lbl.text = "Sonuç burada görünecek…"
         self.result_name_lbl.color = TEXT_SEC
@@ -136,50 +145,93 @@ class ScanScreen(Screen):
         Clock.schedule_once(self._start_camera, 0.3)
 
     def _start_camera(self, dt):
-        """Kamerayı lazy olarak başlat."""
-        if self._camera_widget is not None:
-            # Zaten oluşturulmuş, sadece başlat
-            try:
-                self._camera_widget.play = True
-                self.camera_status_lbl.text = ""
-            except Exception:
-                pass
+        """OpenCV ile kamerayı başlat (arka planda)."""
+        if self._cap is not None and self._cap.isOpened():
+            # Zaten açık — döngüyü yeniden başlat
+            self._start_frame_loop()
             return
 
-        try:
-            from kivy.uix.camera import Camera
-            cam = Camera(
-                play=True,
-                resolution=(640, 480),
-                allow_stretch=True,
-                keep_ratio=True,
-            )
-            self._camera_widget = cam
+        self.camera_status_lbl.text = "📷  Kamera açılıyor…"
+        threading.Thread(target=self._open_camera_thread, daemon=True).start()
 
-            # Placeholder'ı temizle ve kamerayı ekle
-            self.camera_placeholder.clear_widgets()
-            self.camera_placeholder.add_widget(cam)
-            self.camera_status_lbl = StyledLabel(text="", font_size="1sp")  # gizli
+    def _open_camera_thread(self):
+        """Kamerayı arka planda aç (CAP_DSHOW Windows'ta çok daha hızlı)."""
+        try:
+            import cv2
+            # DirectShow backend: Windows'ta varsayılan MF'den çok daha hızlı
+            cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+            if not cap.isOpened():
+                # DSHOW çalışmazsa varsayılan dene
+                cap = cv2.VideoCapture(0)
+            if not cap.isOpened():
+                Clock.schedule_once(lambda dt: self._on_camera_error("Kamera bulunamadı veya erişim reddedildi."))
+                return
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+            self._cap = cap
+            Clock.schedule_once(lambda dt: self._on_camera_ready())
+        except ImportError:
+            Clock.schedule_once(lambda dt: self._on_camera_error(
+                "opencv-python yüklü değil.\npip install opencv-python"
+            ))
         except Exception as e:
-            self.camera_status_lbl.text = f"⚠️ Kamera açılamadı:\n{e}\n\nLütfen kamera iznini kontrol edin."
-            self.camera_status_lbl.color = DANGER
-            self._camera_widget = None
+            Clock.schedule_once(lambda dt: self._on_camera_error(str(e)))
+
+    def _on_camera_ready(self):
+        self.camera_status_lbl.text = ""
+        self._start_frame_loop()
+
+    def _on_camera_error(self, msg: str):
+        self.camera_status_lbl.text = f"⚠️ Kamera açılamadı:\n{msg}\n\nLütfen kamera iznini kontrol edin."
+        self.camera_status_lbl.color = DANGER
+
+    def _start_frame_loop(self):
+        """Clock ile 30 FPS kare güncelleme döngüsü."""
+        if self._clock_event is not None:
+            return
+        self._clock_event = Clock.schedule_interval(self._update_frame, 1.0 / 30)
+
+    def _update_frame(self, dt):
+        """Her karede OpenCV'den kare al, KivyImage'a yaz."""
+        if self._cap is None or not self._cap.isOpened():
+            return
+        try:
+            import cv2
+            ret, frame = self._cap.read()
+            if not ret:
+                return
+            # BGR → RGB
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            # Kivy için dikey flip (koordinat sistemi farkı)
+            frame_flip = np.flipud(frame_rgb)
+            h, w, _ = frame_flip.shape
+            self._last_frame = frame_rgb  # scan için orijinal (flip'siz) kaydet
+
+            texture = Texture.create(size=(w, h), colorfmt='rgb')
+            texture.blit_buffer(frame_flip.tobytes(), colorfmt='rgb', bufferfmt='ubyte')
+            self._camera_image.texture = texture
+        except Exception:
+            pass
 
     def on_leave(self, *args):
         """Ekrandan çıkınca kamerayı durdur."""
-        if self._camera_widget is not None:
+        self._stop_camera()
+
+    def _stop_camera(self):
+        if self._clock_event is not None:
+            self._clock_event.cancel()
+            self._clock_event = None
+        if self._cap is not None:
             try:
-                self._camera_widget.play = False
+                self._cap.release()
             except Exception:
                 pass
+            self._cap = None
+        self._last_frame = None
 
     def _go_back(self, *args):
         """Ana sayfaya geri dön."""
-        if self._camera_widget is not None:
-            try:
-                self._camera_widget.play = False
-            except Exception:
-                pass
+        self._stop_camera()
         if self.manager:
             self.manager.current = "home"
             try:
@@ -193,7 +245,7 @@ class ScanScreen(Screen):
     # ── TARAMA ────────────────────────────────────────────────────────────────
 
     def _on_scan(self, *args):
-        if self._camera_widget is None or not self._camera_widget.texture:
+        if self._last_frame is None:
             self.result_name_lbl.text = "⚠️ Kamera henüz hazır değil."
             self.result_name_lbl.color = DANGER
             return
@@ -205,14 +257,10 @@ class ScanScreen(Screen):
         self.result_cat_lbl.text = ""
         self.add_btn.disabled = True
 
-        texture = self._camera_widget.texture
-        size = texture.size
-        pixels = texture.pixels
+        frame = self._last_frame.copy()  # thread-safe kopya
 
-        # PIL: RGBA → FLIP → RGB → JPEG → base64
-        img = PILImage.frombytes('RGBA', size, pixels)
-        img = img.transpose(PILImage.FLIP_TOP_BOTTOM)
-        img = img.convert('RGB')
+        # numpy RGB → PIL → JPEG → base64
+        img = PILImage.fromarray(frame)
         buf = io.BytesIO()
         img.save(buf, format='JPEG', quality=85)
         b64 = base64.b64encode(buf.getvalue()).decode("utf-8")

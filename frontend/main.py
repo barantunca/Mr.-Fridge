@@ -15,6 +15,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # Kivy log seviyesini ayarla (isteğe bağlı)
 os.environ.setdefault("KIVY_LOG_LEVEL", "warning")
 
+# Windows'ta kamera için OpenCV provider zorla (Kivy import'undan ÖNCE olmalı)
+os.environ.setdefault("KIVY_CAMERA", "opencv")
+
 from kivy.app import App
 from kivy.core.window import Window
 from kivy.metrics import dp

@@ -2,14 +2,12 @@ import os
 import base64
 from io import BytesIO
 from PIL import Image
-from dotenv import load_dotenv
+from core.api_key_store import get_api_key, has_valid_key as _store_has_valid_key
 
-load_dotenv()
-API_KEY = os.getenv("OPENAI_API_KEY", "")
 
 # Geçerli bir API key var mı kontrol et
 def _has_valid_api_key() -> bool:
-    return bool(API_KEY) and not API_KEY.startswith("sk-test") and len(API_KEY) > 20
+    return _store_has_valid_key()
 
 
 def compress_image_base64(base64_str: str, max_size: tuple = (512, 512)) -> str:
@@ -35,7 +33,7 @@ async def identify_item_from_base64(base64_image: str) -> str:
 
     from openai import AsyncOpenAI, AuthenticationError
 
-    client = AsyncOpenAI(api_key=API_KEY)
+    client = AsyncOpenAI(api_key=get_api_key())
 
     try:
         optimized_base64 = compress_image_base64(base64_image)

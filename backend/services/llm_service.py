@@ -1,11 +1,21 @@
 import os
 from openai import AsyncOpenAI
 from typing import List
-from dotenv import load_dotenv
+from core.api_key_store import get_api_key
 
-load_dotenv()
-API_KEY = os.getenv("OPENAI_API_KEY")
-client = AsyncOpenAI(api_key=API_KEY)
+# Lazy init: api_key_store'dan her zaman güncel key alınır
+_client = None
+def _get_client() -> AsyncOpenAI:
+    global _client
+    api_key = get_api_key()
+    if not api_key:
+        raise ValueError(
+            "OpenAI API key eksik. Profil > Hesap Ayarları bölümünden "
+            "API key'inizi girin."
+        )
+    if _client is None:
+        _client = AsyncOpenAI(api_key=api_key)
+    return _client
 
 async def generate_recipe_stream(selected_ingredients: List[str]):
     """Yemek tarifini asenkron olarak ve parça parça (chunk) üretir."""
@@ -24,7 +34,7 @@ async def generate_recipe_stream(selected_ingredients: List[str]):
     )
 
     try:
-        response = await client.chat.completions.create(
+        response = await _get_client().chat.completions.create(
             model="gpt-4o",
             messages=[
                 {"role": "system", "content": "Sen Mr.Fridge uygulaması içinde çalışan, pratik, yaratıcı ve israfı önleyen uzman bir şefsin."},
