@@ -13,6 +13,7 @@ from kivy.graphics import Color, RoundedRectangle, Ellipse
 from kivy.metrics import dp
 from kivy.uix.modalview import ModalView
 from kivy.clock import Clock
+from kivy.uix.image import Image
 
 from ui.theme import (
     BG_DARK, BG_CARD, ACCENT, ACCENT2, TEXT_PRI, TEXT_SEC, TRANSPARENT, SIZE_TITLE, SUCCESS, DANGER
@@ -29,28 +30,41 @@ import api_client
 
 
 TABS = [
-    ("home",      "🏠", "Ana Sayfa"),
-    ("inventory", "📦", "Envanter"),
-    ("recipe",    "🍳", "Tarifler"),
-    ("profile",   "👤", "Profil"),
+    ("home",      'assets/AnaSayfa.jpg', "Ana Sayfa"),
+    ("inventory", 'assets/Envanter.jpg', "Envanter"),
+    ("recipe",    'assets/Tarifler.jpg', "Tarifler"),
+    ("profile",   'assets/Profil.jpg', "Profil"),
 ]
 
-class NavButton(Button):
+class NavButton(BoxLayout):
     def __init__(self, emoji: str, label: str, **kwargs):
-        super().__init__(
-            text=f"{emoji}\n{label}",
-            background_color=TRANSPARENT,
-            color=TEXT_SEC,
-            font_size="11sp",
-            halign="center",
-            **kwargs,
-        )
+        super().__init__(orientation="vertical", padding=[0, dp(4), 0, dp(4)], spacing=0, **kwargs)
         self._active = False
+        
+        self.icon = Image(source=emoji, size_hint=(1, 0.6))
+        self.add_widget(self.icon)
+        
+        self.lbl = StyledLabel(text=label, font_size="11sp", halign="center", color=TEXT_SEC, size_hint=(1, 0.4))
+        self.add_widget(self.lbl)
+
+        # Soruna yol açan bind satırını sildik, sadece kendi tıklama eventimizi kaydediyoruz
+        self.register_event_type('on_release')
+
+    def on_touch_down(self, touch):
+        # Eğer tıklanan yer bu butonun içindeyse on_release (tıklanma) eventini tetikle
+        if self.collide_point(*touch.pos):
+            self.dispatch('on_release')
+            return True
+        return super().on_touch_down(touch)
+
+    def on_release(self, *args):
+        pass
 
     def set_active(self, active: bool):
         self._active = active
-        self.color = TEXT_PRI if active else TEXT_SEC
-        self.bold = active
+        self.lbl.color = TEXT_PRI if active else TEXT_SEC
+        self.lbl.bold = active
+        self.icon.opacity = 1.0 if active else 0.5
 
 
 class FAB(Button):

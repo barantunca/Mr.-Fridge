@@ -32,3 +32,7 @@ SIZE_ICON  = "18sp"
 
 # Yarıçap (Radius)
 RADIUS_CARD = 20
+# İkon Boyutları (dp cinsinden kullanım için)
+ICON_SIZE_SMALL = 16
+ICON_SIZE_MEDIUM = 24
+ICON_SIZE_LARGE = 32

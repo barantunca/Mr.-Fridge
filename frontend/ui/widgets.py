@@ -165,11 +165,12 @@ class CustomTopBar(BoxLayout):
         self.title_lbl = StyledLabel(text=title_text, font_size=SIZE_TITLE, bold=True, halign="center", color=TEXT_PRI)
         self.add_widget(self.title_lbl)
         
-        # Sağ İkon
+        # Sağ İkon (PNG İkon kullanımına uygun)
         if right_icon:
-            self.add_widget(StyledLabel(text=right_icon, font_size="24sp", color=TEXT_SEC, size_hint_x=None, width=dp(40), halign="right"))
+            self.icon_widget = Image(source=right_icon, size_hint_x=None, width=dp(28))
+            self.add_widget(self.icon_widget)
         else:
-            self.add_widget(Widget(size_hint_x=None, width=dp(40)))
+            self.add_widget(Widget(size_hint_x=None, width=dp(28))) 
 
 
 class DonutChart(Widget):
@@ -237,3 +238,19 @@ class ProductCard(CardWidget):
             if end_x > self.progress_container.x:
                 Line(points=[self.progress_container.x, self.progress_container.center_y, end_x, self.progress_container.center_y], width=dp(2))
 
+class IconButton(BoxLayout):
+    """İkon (PNG) ve Metni yan yana gösteren buton."""
+    def __init__(self, icon_source, button_text="", **kwargs):
+        kwargs.setdefault("orientation", "horizontal")
+        kwargs.setdefault("spacing", dp(8))
+        kwargs.setdefault("padding", [dp(12), dp(8)])
+        kwargs.setdefault("size_hint_y", None)
+        kwargs.setdefault("height", dp(48))
+        super().__init__(**kwargs)
+
+        self.icon = Image(source=icon_source, size_hint_x=None, width=dp(24))
+        self.add_widget(self.icon)
+
+        if button_text:
+            self.label = StyledLabel(text=button_text, font_size=SIZE_BODY, bold=True)
+            self.add_widget(self.label)
