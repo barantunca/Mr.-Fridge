@@ -52,7 +52,7 @@ class RecipeScreen(Screen):
             bold=True,
             color=ACCENT2,
         ))
-        mascot = Image(source='assets/mascot_2.jpg', size_hint=(None, None), size=(dp(40), dp(40)))
+        mascot = Image(source='assets/mascot_2.png', size_hint=(None, None), size=(dp(40), dp(40)))
         ing_header.add_widget(mascot)
         
         ing_card.add_widget(ing_header)
@@ -81,7 +81,6 @@ class RecipeScreen(Screen):
                 
                 # İkonu büyütmek için width değerini dp(30)'dan dp(44)'e çıkardık.
                 # Image widget'ı en-boy oranını koruduğu için dikeyde de büyüyecektir.
-                self.add_widget(Image(source='assets/AI_Tarif_Uret.png', size_hint_x=None, width=dp(44)))
                 self.lbl = StyledLabel(text="OpenAI ile Tarif Üret", font_size=SIZE_BODY, bold=True, color=TEXT_PRI)
                 self.add_widget(self.lbl)
                 

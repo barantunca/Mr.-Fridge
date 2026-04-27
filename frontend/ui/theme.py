@@ -11,17 +11,17 @@ def hex_to_kivy(hex_color: str) -> tuple:
     return (r, g, b, 1.0)
 
 
-# ── RENKLER ───────────────────────────────────────────────────────────────────
-BG_DARK   = hex_to_kivy("#D4EBE0")   # Ana arka plan (Pastel Mint Green)
-BG_CARD   = hex_to_kivy("#FDFBF7")   # Kart arka planı (Krem)
-BG_INPUT  = hex_to_kivy("#FFFFFF")   # Input arka planı
-ACCENT    = hex_to_kivy("#E57373")   # Kırmızı Vurgu
-ACCENT2   = hex_to_kivy("#A5D6A7")   # Yeşil Vurgu
-SUCCESS   = hex_to_kivy("#FFF59D")   # Sarı Vurgu (Uyarı/Geçiş)
-DANGER    = hex_to_kivy("#D32F2F")   # Kırmızı (Tehlike)
-TEXT_PRI  = hex_to_kivy("#2F4F4F")   # Birincil metin (Koyu yeşil/gri)
-TEXT_SEC  = hex_to_kivy("#78909C")   # İkincil metin (Açık gri)
-BORDER    = hex_to_kivy("#E0E0E0")   # Kenarlık
+# -- RENKLER --
+BG_DARK     = hex_to_kivy("#F7F9F9")   # Çok hafif soğuk gri-beyaz (İkonları parlatır)
+BG_CARD     = hex_to_kivy("#FFFFFF")   # Saf beyaz kartlar
+ACCENT      = hex_to_kivy("#55EFC4")   # Daha canlı ama göz yormayan Mint (Vurgu)
+ACCENT2     = hex_to_kivy("#81ECEC")   # İkincil yumuşak mavi-yeşil
+SUCCESS     = hex_to_kivy("#00B894")   # Gerçek başarı yeşili (Daha önce sarıydı)
+WARNING     = hex_to_kivy("#FFEAA7")   # Yeni: Yumuşak sarı (Yaklaşan tarihler için)
+DANGER      = hex_to_kivy("#FF7675")   # Yumuşak kırmızı
+TEXT_PRI    = hex_to_kivy("#2D3436")   # Daha yumuşak bir siyah
+TEXT_SEC    = hex_to_kivy("#636E72")   # Okunabilir gri
+BORDER      = hex_to_kivy("#EFEFEF")   # Neredeyse görünmez kenarlıklar 
 TRANSPARENT = (0, 0, 0, 0)
 
 # Sık kullanılan font boyutları (sp cinsinden str)

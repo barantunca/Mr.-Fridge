@@ -31,10 +31,10 @@ import api_client
 
 
 TABS = [
-    ("home",      'assets/AnaSayfa.jpg', "Ana Sayfa"),
-    ("inventory", 'assets/Envanter.jpg', "Envanter"),
-    ("recipe",    'assets/Tarifler.jpg', "Tarifler"),
-    ("profile",   'assets/Profil.jpg', "Profil"),
+    ("home",      'assets/AnaSayfa.png', "Ana Sayfa"),
+    ("inventory", 'assets/Envanter.png', "Envanter"),
+    ("recipe",    'assets/Tarifler.png', "Tarifler"),
+    ("profile",   'assets/Profil.png', "Profil"),
 ]
 
 class NavButton(BoxLayout):
@@ -144,7 +144,7 @@ class ManualAddPopup(ModalView):
         btn_cancel.bind(on_release=lambda *a: self.dismiss())
 
         self.btn_add = Button(
-            text="✅  Ekle",
+            text="Ekle",
             background_color=TRANSPARENT,
             color=TEXT_PRI,
             bold=True,
@@ -169,13 +169,13 @@ class ManualAddPopup(ModalView):
     def _on_add(self, *args):
         name = self.name_input.text.strip()
         if not name:
-            self.status_lbl.text = "⚠️  Ürün adı boş olamaz!"
+            self.status_lbl.text = "Ürün adı boş olamaz!"
             self.status_lbl.color = DANGER
             return
 
         category = self.cat_input.text.strip() or "Diğer"
         self.btn_add.disabled = True
-        self.status_lbl.text = "⏳  Ekleniyor…"
+        self.status_lbl.text = "Ekleniyor…"
         self.status_lbl.color = TEXT_SEC
 
         def do_add():
@@ -186,11 +186,11 @@ class ManualAddPopup(ModalView):
 
     def _on_done(self, resp: dict, name: str):
         if "error" in resp:
-            self.status_lbl.text = f"❌ Hata: {resp['error']}"
+            self.status_lbl.text = f"Hata: {resp['error']}"
             self.status_lbl.color = DANGER
             self.btn_add.disabled = False
         else:
-            self.status_lbl.text = f"✅  {name} eklendi!"
+            self.status_lbl.text = f"{name} eklendi!"
             self.status_lbl.color = SUCCESS
             if self.on_added_callback:
                 self.on_added_callback()
@@ -206,9 +206,10 @@ class FABMenu(ModalView):
         self.on_camera = on_camera
         self.on_manual = on_manual
 
-        card = CardWidget(orientation="vertical", padding=dp(20), spacing=dp(10))
+        card = CardWidget(orientation="vertical", padding=dp(24), spacing=dp(15))
+        
         header = BoxLayout(orientation="horizontal", size_hint_y=None, height=dp(40))
-        header.add_widget(StyledLabel(text="Ürün Ekle", font_size=SIZE_TITLE, bold=True, color=TEXT_PRI))
+        header.add_widget(StyledLabel(text="Ürün Ekle", font_size=SIZE_TITLE, bold=True, color=TEXT_PRI, halign="center"))
         card.add_widget(header)
 
         btns = BoxLayout(orientation="horizontal", spacing=dp(16))

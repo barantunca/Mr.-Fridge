@@ -17,8 +17,6 @@ from ui.theme import (
 
 
 class CardWidget(BoxLayout):
-    """Yuvarlak kenarlıklı, arka planlı kart."""
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.bind(pos=self._redraw, size=self._redraw)
@@ -27,16 +25,13 @@ class CardWidget(BoxLayout):
         if not self.canvas: return
         self.canvas.before.clear()
         with self.canvas.before:
+            # Subtle Shadow (Gölge efekti)
+            Color(0, 0, 0, 0.05) # %5 şeffaf siyah
+            RoundedRectangle(pos=(self.x + dp(2), self.y - dp(2)), 
+                             size=self.size, radius=[dp(18)])
+            # Main Card
             Color(*BG_CARD)
-            RoundedRectangle(pos=self.pos, size=self.size, radius=[dp(14)])
-            Color(*BORDER)
-            Line(rounded_rectangle=(self.x, self.y, self.width, self.height, dp(14)), width=1)
-
-    def on_size(self, *args):
-        self._redraw()
-
-    def on_pos(self, *args):
-        self._redraw()
+            RoundedRectangle(pos=self.pos, size=self.size, radius=[dp(18)])
 
 
 class StyledLabel(Label):
@@ -207,7 +202,7 @@ class ProductCard(CardWidget):
         super().__init__(**kwargs)
         
         # Resim (Maskot olarak)
-        self.add_widget(Image(source='assets/mascot_4.jpg', size_hint_y=None, height=dp(50)))
+        self.add_widget(Image(source='assets/mascot_4.png', size_hint_y=None, height=dp(50)))
         
         # İsim
         self.add_widget(StyledLabel(text=name, font_size=SIZE_BODY, bold=True, halign="center", size_hint_y=None, height=dp(20)))

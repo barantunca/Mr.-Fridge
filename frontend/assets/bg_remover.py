@@ -2,7 +2,7 @@ from rembg import remove
 from PIL import Image
 import os
 
-files = ["Bi.jpg"]
+files = ["mascot.png"]
 
 for file in files:
     input_path = f"frontend/assets/{file}"
