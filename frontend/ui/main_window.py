@@ -14,6 +14,7 @@ from kivy.metrics import dp
 from kivy.uix.modalview import ModalView
 from kivy.clock import Clock
 from kivy.uix.image import Image
+from kivy.uix.behaviors import ButtonBehavior
 
 from ui.theme import (
     BG_DARK, BG_CARD, ACCENT, ACCENT2, TEXT_PRI, TEXT_SEC, TRANSPARENT, SIZE_TITLE, SUCCESS, DANGER
@@ -47,11 +48,9 @@ class NavButton(BoxLayout):
         self.lbl = StyledLabel(text=label, font_size="11sp", halign="center", color=TEXT_SEC, size_hint=(1, 0.4))
         self.add_widget(self.lbl)
 
-        # Soruna yol açan bind satırını sildik, sadece kendi tıklama eventimizi kaydediyoruz
         self.register_event_type('on_release')
 
     def on_touch_down(self, touch):
-        # Eğer tıklanan yer bu butonun içindeyse on_release (tıklanma) eventini tetikle
         if self.collide_point(*touch.pos):
             self.dispatch('on_release')
             return True
@@ -68,7 +67,6 @@ class NavButton(BoxLayout):
 
 
 class FAB(Button):
-    """Floating Action Button."""
     def __init__(self, **kwargs):
         kwargs.setdefault("size_hint", (None, None))
         kwargs.setdefault("size", (dp(64), dp(64)))
@@ -82,14 +80,13 @@ class FAB(Button):
     def _draw(self, *args):
         self.canvas.before.clear()
         with self.canvas.before:
-            Color(*BG_CARD) # Outer stroke padding
+            Color(*BG_CARD) 
             Ellipse(pos=(self.x - dp(6), self.y - dp(6)), size=(self.width + dp(12), self.height + dp(12)))
-            Color(*ACCENT2) # Inner fill
+            Color(*ACCENT2) 
             Ellipse(pos=self.pos, size=self.size)
 
 
 class ManualAddPopup(ModalView):
-    """Manuel ürün ekleme formu."""
     def __init__(self, on_added_callback=None, **kwargs):
         kwargs.setdefault("size_hint", (0.9, None))
         kwargs.setdefault("height", dp(300))
@@ -99,13 +96,11 @@ class ManualAddPopup(ModalView):
 
         card = CardWidget(orientation="vertical", padding=dp(20), spacing=dp(12))
 
-        # Başlık
         header = BoxLayout(orientation="horizontal", size_hint_y=None, height=dp(40))
-        header.add_widget(StyledLabel(text="✍️", font_size="28sp", size_hint_x=None, width=dp(40)))
+        header.add_widget(Image(source='assets/ManuelEkle.png', size_hint_x=None, width=dp(40)))
         header.add_widget(StyledLabel(text="Manuel Ürün Ekle", font_size=SIZE_TITLE, bold=True, color=TEXT_PRI))
         card.add_widget(header)
 
-        # Ürün adı
         card.add_widget(StyledLabel(text="Ürün Adı:", font_size="13sp", color=TEXT_SEC,
                                     size_hint_y=None, height=dp(20)))
         self.name_input = TextInput(
@@ -120,7 +115,6 @@ class ManualAddPopup(ModalView):
         )
         card.add_widget(self.name_input)
 
-        # Kategori
         card.add_widget(StyledLabel(text="Kategori:", font_size="13sp", color=TEXT_SEC,
                                     size_hint_y=None, height=dp(20)))
         self.cat_input = TextInput(
@@ -135,12 +129,10 @@ class ManualAddPopup(ModalView):
         )
         card.add_widget(self.cat_input)
 
-        # Durum etiketi
         self.status_lbl = StyledLabel(text="", font_size="12sp", color=TEXT_SEC,
                                       size_hint_y=None, height=dp(20), halign="center")
         card.add_widget(self.status_lbl)
 
-        # Butonlar
         btn_row = BoxLayout(orientation="horizontal", spacing=dp(12), size_hint_y=None, height=dp(44))
 
         btn_cancel = Button(
@@ -206,7 +198,6 @@ class ManualAddPopup(ModalView):
 
 
 class FABMenu(ModalView):
-    """Ortadaki + butonuna basıldığında açılan menü."""
     def __init__(self, on_camera=None, on_manual=None, **kwargs):
         kwargs.setdefault("size_hint", (0.9, None))
         kwargs.setdefault("height", dp(200))
@@ -216,31 +207,30 @@ class FABMenu(ModalView):
         self.on_manual = on_manual
 
         card = CardWidget(orientation="vertical", padding=dp(20), spacing=dp(10))
-        # Maskot ve Başlık
         header = BoxLayout(orientation="horizontal", size_hint_y=None, height=dp(40))
-        header.add_widget(StyledLabel(text="🧊", font_size="32sp", size_hint_x=None, width=dp(40)))
         header.add_widget(StyledLabel(text="Ürün Ekle", font_size=SIZE_TITLE, bold=True, color=TEXT_PRI))
         card.add_widget(header)
 
-        # Butonlar
         btns = BoxLayout(orientation="horizontal", spacing=dp(16))
 
-        btn_cam = Button(text="📷\nFOTOĞRAF ÇEK", halign="center",
-                         background_color=TRANSPARENT, color=TEXT_PRI, bold=True)
-        with btn_cam.canvas.before:
-            Color(*ACCENT2)
-            btn_cam.rect = RoundedRectangle(pos=btn_cam.pos, size=btn_cam.size, radius=[dp(12)])
-        btn_cam.bind(pos=lambda inst, val: setattr(inst.rect, 'pos', val),
-                     size=lambda inst, val: setattr(inst.rect, 'size', val))
+        class FABButton(ButtonBehavior, BoxLayout):
+            def __init__(self, icon_path, label_text, bg_color, **kwargs):
+                super().__init__(orientation="vertical", padding=dp(10), spacing=dp(5), **kwargs)
+                with self.canvas.before:
+                    Color(*bg_color)
+                    self.rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[dp(12)])
+                self.bind(pos=self._update_rect, size=self._update_rect)
+                self.add_widget(Image(source=icon_path, size_hint_y=0.6))
+                self.add_widget(StyledLabel(text=label_text, halign="center", bold=True, color=TEXT_PRI, size_hint_y=0.4))
+                
+            def _update_rect(self, *args):
+                self.rect.pos = self.pos
+                self.rect.size = self.size
+
+        btn_cam = FABButton('assets/Foto_Cek.png', "FOTOĞRAF\nÇEK", ACCENT2)
         btn_cam.bind(on_release=self._go_camera)
 
-        btn_manual = Button(text="✍️\nMANUEL EKLE", halign="center",
-                            background_color=TRANSPARENT, color=TEXT_PRI, bold=True)
-        with btn_manual.canvas.before:
-            Color(*ACCENT)
-            btn_manual.rect = RoundedRectangle(pos=btn_manual.pos, size=btn_manual.size, radius=[dp(12)])
-        btn_manual.bind(pos=lambda inst, val: setattr(inst.rect, 'pos', val),
-                        size=lambda inst, val: setattr(inst.rect, 'size', val))
+        btn_manual = FABButton('assets/ManuelEkle.png', "MANUEL\nEKLE", ACCENT)
         btn_manual.bind(on_release=self._go_manual)
 
         btns.add_widget(btn_cam)
@@ -267,13 +257,11 @@ class MainWindow(FloatLayout):
         self._build()
 
     def _build(self):
-        # Arka plan
         with self.canvas.before:
             Color(*BG_DARK)
             self._bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[0])
         self.bind(pos=self._update_bg, size=self._update_bg)
 
-        # ── SCREEN MANAGER ─────────────────────────────────────────────────────
         self.sm = ScreenManager(transition=SlideTransition(duration=0.25))
         self.sm.add_widget(HomeScreen(name="home"))
         self.sm.add_widget(InventoryScreen(name="inventory"))
@@ -281,12 +269,10 @@ class MainWindow(FloatLayout):
         self.sm.add_widget(ProfileScreen(name="profile"))
         self.sm.add_widget(ScanScreen(name="scan"))
 
-        # Ekranı biraz yukarıdan bırakalım ki BottomNav üzerine binmesin
         sm_container = BoxLayout(padding=[0, 0, 0, dp(64)])
         sm_container.add_widget(self.sm)
         self.add_widget(sm_container)
 
-        # ── ALT NAVİGASYON ─────────────────────────────────────────────────────
         self.nav_bar = BoxLayout(
             orientation="horizontal",
             size_hint=(1, None),
@@ -298,21 +284,18 @@ class MainWindow(FloatLayout):
             self._nav_rect = RoundedRectangle(pos=self.nav_bar.pos, size=self.nav_bar.size, radius=[dp(24), dp(24), 0, 0])
         self.nav_bar.bind(pos=self._update_nav_bg, size=self._update_nav_bg)
 
-        # Tabs
-        self._add_nav_button(*TABS[0]) # Home
-        self._add_nav_button(*TABS[1]) # Inventory
+        self._add_nav_button(*TABS[0]) 
+        self._add_nav_button(*TABS[1]) 
 
-        # Center empty space for FAB
         self.nav_bar.add_widget(Widget(size_hint_x=0.5))
 
-        self._add_nav_button(*TABS[2]) # Recipe
-        self._add_nav_button(*TABS[3]) # Profile
+        self._add_nav_button(*TABS[2]) 
+        self._add_nav_button(*TABS[3]) 
 
         self.add_widget(self.nav_bar)
 
-        # ── FAB ─────────────────────────────────────────────────────────────
         self.fab = FAB(pos_hint={'center_x': 0.5})
-        self.fab.y = dp(28) # Overlap bottom nav
+        self.fab.y = dp(28) 
         self.fab.bind(on_release=self._open_fab_menu)
         self.add_widget(self.fab)
 
@@ -332,16 +315,12 @@ class MainWindow(FloatLayout):
         self.fab_menu.open()
 
     def _go_to_scan(self):
-        """Kamera tarama ekranına geç."""
         self.sm.current = "scan"
-        # Nav butonlarını güncelle (scan bir tab değil, sadece ekran)
         for btn in self._nav_buttons.values():
             btn.set_active(False)
 
     def _open_manual_add(self):
-        """Manuel ekleme popup'ını aç."""
         def on_item_added():
-            # Mevcut ekranı yenile (home veya inventory ise)
             if self.sm.current in ("home", "inventory"):
                 screen = self.sm.get_screen(self.sm.current)
                 if hasattr(screen, "on_enter"):

@@ -1,8 +1,5 @@
 """
 recipe_screen.py — Tarif üretme ekranı
-Envanterden malzemeleri yükler, kullanıcı checkbox ile seçer,
-"Tarif Üret" butonuna basınca backend /recipe/generate'e istek gönderir
-ve streaming yanıtı anlık olarak ekranda gösterir.
 """
 import threading
 
@@ -15,32 +12,32 @@ from kivy.uix.label import Label
 from kivy.uix.image import Image
 from kivy.clock import Clock
 from kivy.metrics import dp
+from kivy.uix.behaviors import ButtonBehavior
+from kivy.graphics import Color, RoundedRectangle
 
 import api_client
 from ui.theme import (
     ACCENT, ACCENT2, SUCCESS, TEXT_PRI, TEXT_SEC,
     BG_CARD, SIZE_TITLE, SIZE_BODY, SIZE_SMALL
 )
-from ui.widgets import CardWidget, StyledLabel, GradientButton, Divider, CustomTopBar
+from ui.widgets import CardWidget, StyledLabel, Divider, CustomTopBar
 
 
 class RecipeScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._ingredient_checkboxes = {}  # name → CheckBox widget
+        self._ingredient_checkboxes = {}  
         self._streaming = False
         self._build_ui()
 
     def _build_ui(self):
         root = BoxLayout(orientation="vertical", spacing=0)
 
-        # ── HEADER ─────────────────────────────────────────────────────────────
         titlebar = CustomTopBar(title_text="Tarifler", right_icon="")
         root.add_widget(titlebar)
 
         content = BoxLayout(orientation="vertical", padding=dp(16), spacing=dp(10))
 
-        # ── MALZEMELERİ SEÇ ───────────────────────────────────────────────────
         ing_card = CardWidget(
             orientation="vertical",
             padding=dp(12),
@@ -55,7 +52,6 @@ class RecipeScreen(Screen):
             bold=True,
             color=ACCENT2,
         ))
-        # Maskot resmi (görsel olarak tatlı dursun diye köşeye eklendi)
         mascot = Image(source='assets/mascot_2.jpg', size_hint=(None, None), size=(dp(40), dp(40)))
         ing_header.add_widget(mascot)
         
@@ -73,16 +69,35 @@ class RecipeScreen(Screen):
         ing_card.add_widget(ing_scroll)
         content.add_widget(ing_card)
 
-        # ── ÜRETİL BUTONU ─────────────────────────────────────────────────────
-        self.generate_btn = GradientButton(
-            text="✨  OpenAI ile Tarif Üret",
-            size_hint_y=None,
-            height=dp(52),
-        )
+        # ── ÜRETİL BUTONU (YENİ İKONLU VERSİYON) ──────────────────────────────
+        class RecipeButton(ButtonBehavior, BoxLayout):
+            def __init__(self, **kwargs):
+                # Buton yüksekliği dp(52), yatay padding dp(20), öğeler arası spacing dp(10)
+                super().__init__(orientation="horizontal", padding=[dp(20), 0], spacing=dp(10), size_hint_y=None, height=dp(52), **kwargs)
+                with self.canvas.before:
+                    Color(*ACCENT) 
+                    self.rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[dp(10)])
+                self.bind(pos=self._update_rect, size=self._update_rect)
+                
+                # İkonu büyütmek için width değerini dp(30)'dan dp(44)'e çıkardık.
+                # Image widget'ı en-boy oranını koruduğu için dikeyde de büyüyecektir.
+                self.add_widget(Image(source='assets/AI_Tarif_Uret.png', size_hint_x=None, width=dp(44)))
+                self.lbl = StyledLabel(text="OpenAI ile Tarif Üret", font_size=SIZE_BODY, bold=True, color=TEXT_PRI)
+                self.add_widget(self.lbl)
+                
+            def _update_rect(self, *args):
+                self.rect.pos = self.pos
+                self.rect.size = self.size
+                
+            @property
+            def text(self): return self.lbl.text
+            @text.setter
+            def text(self, val): self.lbl.text = val
+
+        self.generate_btn = RecipeButton()
         self.generate_btn.bind(on_release=self._on_generate)
         content.add_widget(self.generate_btn)
 
-        # ── TARİF KUTUSU ──────────────────────────────────────────────────────
         recipe_card = CardWidget(
             orientation="vertical",
             padding=dp(12),
@@ -121,12 +136,8 @@ class RecipeScreen(Screen):
         root.add_widget(content)
         self.add_widget(root)
 
-    # ── EKRANA GİRİŞ ─────────────────────────────────────────────────────────
-
     def on_enter(self, *args):
         self._load_ingredients()
-
-    # ── MALZEME YÜKLEME ───────────────────────────────────────────────────────
 
     def _load_ingredients(self):
         self.ing_layout.clear_widgets()
@@ -168,8 +179,6 @@ class RecipeScreen(Screen):
                 self.ing_layout.add_widget(row)
                 self._ingredient_checkboxes[name] = cb
 
-    # ── TARİF OLUŞTUR ─────────────────────────────────────────────────────────
-
     def _on_generate(self, *args):
         if self._streaming:
             return
@@ -193,7 +202,7 @@ class RecipeScreen(Screen):
 
     def _stream_recipe(self, ingredients: list):
         for chunk in api_client.generate_recipe_stream(ingredients):
-            final_chunk = chunk  # lambda kapanımı için
+            final_chunk = chunk  
             Clock.schedule_once(lambda dt, c=final_chunk: self._append_text(c))
         Clock.schedule_once(self._on_stream_done)
 
@@ -203,5 +212,4 @@ class RecipeScreen(Screen):
     def _on_stream_done(self, *args):
         self._streaming = False
         self.generate_btn.disabled = False
-        self.generate_btn.text = "✨  Tekrar Üret"
-
+        self.generate_btn.text = "Tekrar Üret"
