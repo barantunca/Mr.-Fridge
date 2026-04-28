@@ -47,3 +47,8 @@ app.include_router(settings_router)
 @app.get("/")
 async def root():
     return {"message": "Mr.Fridge Backend Sistemine Hoş Geldiniz! (Asenkron Sürüm Aktif)"}
+
+if __name__ == "__main__":
+    import uvicorn
+    # IDE üzerinden (VS Code vb.) doğrudan Run/Debug yapabilmek için:
+    uvicorn.run(app, host="127.0.0.1", port=8000)

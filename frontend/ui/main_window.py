@@ -96,9 +96,14 @@ class ManualAddPopup(ModalView):
 
         card = CardWidget(orientation="vertical", padding=dp(20), spacing=dp(12))
 
-        header = BoxLayout(orientation="horizontal", size_hint_y=None, height=dp(40))
-        header.add_widget(Image(source='assets/ManuelEkle.png', size_hint_x=None, width=dp(40)))
-        header.add_widget(StyledLabel(text="Manuel Ürün Ekle", font_size=SIZE_TITLE, bold=True, color=TEXT_PRI))
+        header = BoxLayout(orientation="horizontal", size_hint_y=None, height=dp(48), spacing=dp(16))
+        
+        # Sola yaslamak için boşluk ekleyebiliriz ya da sağa yaslamak için ortaya Widget() atabiliriz
+        header.add_widget(Widget()) # Başlığı ve ikonu sağ üstte tutmak için boşluğu sola alıyoruz
+        
+        header.add_widget(Image(source='assets/ManuelEkle.png', size_hint=(None, None), size=(dp(40), dp(40)), pos_hint={'center_y': 0.5}))
+        header.add_widget(StyledLabel(text="Manuel Ürün Ekle", font_size="20sp", bold=True, color=TEXT_PRI, size_hint_x=None, width=dp(180), halign="right"))
+        
         card.add_widget(header)
 
         card.add_widget(StyledLabel(text="Ürün Adı:", font_size="13sp", color=TEXT_SEC,
@@ -108,8 +113,8 @@ class ManualAddPopup(ModalView):
             multiline=False,
             size_hint_y=None,
             height=dp(44),
-            background_color=(0.15, 0.15, 0.25, 1),
-            foreground_color=TEXT_PRI,
+            background_color=(0.96, 0.96, 0.96, 1), # Çok açık gri arka plan (#F5F5F5)
+            foreground_color=(0.1, 0.1, 0.1, 1),    # Net okunabilir koyu siyah/gri
             cursor_color=ACCENT,
             padding=[dp(12), dp(10)],
         )
@@ -122,8 +127,8 @@ class ManualAddPopup(ModalView):
             multiline=False,
             size_hint_y=None,
             height=dp(44),
-            background_color=(0.15, 0.15, 0.25, 1),
-            foreground_color=TEXT_PRI,
+            background_color=(0.96, 0.96, 0.96, 1), # Çok açık gri arka plan (#F5F5F5)
+            foreground_color=(0.1, 0.1, 0.1, 1),    # Net okunabilir koyu siyah/gri
             cursor_color=ACCENT,
             padding=[dp(12), dp(10)],
         )

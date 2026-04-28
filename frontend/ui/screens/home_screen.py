@@ -15,7 +15,7 @@ from kivy.clock import Clock
 
 import api_client
 from ui.theme import (
-    ACCENT, ACCENT2, DANGER, TEXT_PRI, TEXT_SEC, SIZE_TITLE, SIZE_BODY, SIZE_SMALL
+    ACCENT, ACCENT2, DANGER, TEXT_PRI, TEXT_SEC, SIZE_TITLE, SIZE_BODY, SIZE_SMALL, get_capacity_color, get_fridge_capacity
 )
 from ui.widgets import CardWidget, StyledLabel, CustomTopBar, DonutChart, ProductCard
 
@@ -53,8 +53,8 @@ class HomeScreen(Screen):
         self.content.clear_widgets()
         
         total_items = len(items)
-        # Örnek doluluk algoritması
-        fill_pct = min(100, int((total_items / 40.0) * 100)) if items else 0
+        capacity = get_fridge_capacity()
+        fill_pct = min(100, int((total_items / capacity) * 100)) if items else 0
 
         # Uyarı olacak ürünleri hesapla
         urgent = [i for i in items if i.get("days_left", 5) <= 3]
@@ -70,14 +70,25 @@ class HomeScreen(Screen):
         summary_card.add_widget(left_box)
 
         # Orta Kısım: Donut Chart
-        chart_text = "DİKKAT" if urgent else "İYİ"
-        chart = DonutChart(percentage=fill_pct, center_text=chart_text, size_hint=(None, None), size=(dp(100), dp(100)))
+        if fill_pct == 0:
+            chart_text = "Boş"
+        elif 1 <= fill_pct <= 25:
+            chart_text = "Neredeyse\nBoş"
+        elif 26 <= fill_pct <= 55:
+            chart_text = "Ortalama"
+        elif 56 <= fill_pct <= 85:
+            chart_text = "Dolu"
+        else:
+            chart_text = "Ful\nDolu"
+            
+        dyn_color = get_capacity_color(fill_pct)
+        chart = DonutChart(percentage=fill_pct, center_text=chart_text, color=dyn_color, size_hint=(None, None), size=(dp(100), dp(100)))
         summary_card.add_widget(chart)
 
         # Sağ Kısım: Doluluk
         right_box = BoxLayout(orientation="vertical", spacing=dp(4))
         right_box.add_widget(StyledLabel(text="DOLULUK", font_size="10sp", bold=True, color=TEXT_SEC, halign="center"))
-        right_box.add_widget(StyledLabel(text=f"%{fill_pct}", font_size="28sp", bold=True, color=TEXT_PRI, halign="center"))
+        right_box.add_widget(StyledLabel(text=f"%{fill_pct}", font_size="28sp", bold=True, color=dyn_color, halign="center"))
         right_box.add_widget(Widget(size_hint_y=None, height=dp(10))) # Empty space
         summary_card.add_widget(right_box)
 
@@ -117,8 +128,8 @@ class HomeScreen(Screen):
         alert_box.add_widget(alert_content)
         self.content.add_widget(alert_box)
 
-        # ── HIZLI LİSTE ───────────────────────────────────────────────────────
-        self.content.add_widget(StyledLabel(text="HIZLI LİSTE", font_size="13sp", bold=True, color=TEXT_SEC, size_hint_y=None, height=dp(20)))
+        # ── EN SON EKLENENLER ───────────────────────────────────────────────────────
+        self.content.add_widget(StyledLabel(text="EN SON EKLENENLER", font_size="13sp", bold=True, color=TEXT_SEC, size_hint_y=None, height=dp(20)))
 
         if not items:
             self.content.add_widget(StyledLabel(text="Buzdolabın boş.", color=TEXT_SEC, font_size="13sp", halign="center"))
@@ -126,12 +137,30 @@ class HomeScreen(Screen):
             grid = GridLayout(cols=2, spacing=dp(12), size_hint_y=None, row_default_height=dp(130), row_force_default=True)
             grid.bind(minimum_height=grid.setter('height'))
             
-            # Show up to 4 items
-            for i, item in enumerate(sorted(items, key=lambda x: x.get('days_left', 99))):
+            # Show up to 4 items (Zaten backend'den en son eklenenler en üstte geliyor)
+            count = 0
+            for i, item in enumerate(items):
                 if i >= 4:
                     break
                 days = item.get("days_left", 5)
-                grid.add_widget(ProductCard(name=item["name"], days_left=days))
+                card = ProductCard(
+                    name=item["name"], 
+                    category=item.get("category", "Diğer"),
+                    days_left=days,
+                    item_id=item.get("id"),
+                    on_delete=self._delete_item
+                )
+                grid.add_widget(card)
+                count += 1
+
+            if count % 2 != 0:
+                grid.add_widget(Widget()) # Force second column to keep card width 50%
 
             self.content.add_widget(grid)
 
+    def _delete_item(self, item_id: int):
+        threading.Thread(target=lambda: self._do_delete(item_id), daemon=True).start()
+
+    def _do_delete(self, item_id: int):
+        api_client.delete_item(item_id)
+        Clock.schedule_once(lambda dt: self._fetch_summary())

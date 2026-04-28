@@ -18,6 +18,10 @@ os.environ.setdefault("KIVY_LOG_LEVEL", "warning")
 # Windows'ta kamera için OpenCV provider zorla (Kivy import'undan ÖNCE olmalı)
 os.environ.setdefault("KIVY_CAMERA", "opencv")
 
+# Kivy'nin sağ/orta tıklamada ekrana çizdiği kırmızı nokta (multitouch) efektini kapat
+from kivy.config import Config
+Config.set('input', 'mouse', 'mouse,disable_multitouch')
+
 from kivy.app import App
 from kivy.core.window import Window
 from kivy.metrics import dp

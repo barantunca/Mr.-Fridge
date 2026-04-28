@@ -85,24 +85,47 @@ class InventoryScreen(Screen):
 
         self.status_lbl.text = f"{len(items)} ürün."
 
-        self.list_layout.add_widget(StyledLabel(
-            text="Tüm Ürünler",
-            font_size="13sp",
-            bold=True,
-            color=TEXT_SEC,
-            size_hint_y=None,
-            height=dp(20)
-        ))
-
-        grid = GridLayout(cols=2, spacing=dp(12), size_hint_y=None, row_default_height=dp(130), row_force_default=True)
-        grid.bind(minimum_height=grid.setter('height'))
-
+        from collections import defaultdict
+        grouped_items = defaultdict(list)
         for item in sorted(items, key=lambda x: x.get('days_left', 99)):
-            days = item.get("days_left", 5)
-            card = ProductCard(name=item["name"], days_left=days)
-            grid.add_widget(card)
+            cat = item.get("category", "Diğer")
+            if not cat:
+                cat = "Diğer"
+            grouped_items[cat].append(item)
 
-        self.list_layout.add_widget(grid)
+        for category_name, cat_items in grouped_items.items():
+            # Kategori Başlığı
+            self.list_layout.add_widget(StyledLabel(
+                text=str(category_name).upper(),
+                font_size="14sp",
+                bold=True,
+                color=TEXT_PRI,
+                size_hint_y=None,
+                height=dp(30)
+            ))
+
+            # Ürünlerin grid'i
+            grid = GridLayout(cols=2, spacing=dp(12), size_hint_y=None, row_default_height=dp(130), row_force_default=True)
+            grid.bind(minimum_height=grid.setter('height'))
+
+            for item in cat_items:
+                days = item.get("days_left", 5)
+                card = ProductCard(
+                    name=item["name"], 
+                    category=item.get("category", "Diğer"),
+                    days_left=days,
+                    item_id=item.get("id"),
+                    on_delete=self._delete_item
+                )
+                grid.add_widget(card)
+
+            if len(cat_items) % 2 != 0:
+                grid.add_widget(Widget()) # Force second column for 50% width
+
+            self.list_layout.add_widget(grid)
+            
+            # Kategoriler arası ekstra esneme boşluğu
+            self.list_layout.add_widget(Widget(size_hint_y=None, height=dp(10)))
 
     def _delete_item(self, item_id: int):
         self.status_lbl.text = "Siliniyor…"
