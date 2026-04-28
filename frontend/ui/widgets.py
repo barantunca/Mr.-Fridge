@@ -236,15 +236,26 @@ class ProductCard(CardWidget):
         self._is_delete_mode = False
         
         # Kategoriye göre ikon seçimi
-        cat = category.lower()
-        if "et" in cat or "tavuk" in cat or "kıyma" in cat or "sucuk" in cat or "salam" in cat:
-            img_src = 'assets/mascot_1.png'
-        elif "sebze" in cat or "meyve" in cat or "yeşillik" in cat:
-            img_src = 'assets/mascot_2.png'
-        elif "süt" in cat or "peynir" in cat or "kahvaltı" in cat or "sos" in cat:
-            img_src = 'assets/mascot_3.png'
+        cat_lower = category.lower()
+        
+        if "sebze" in cat_lower or "yeşillik" in cat_lower:
+            img_src = 'assets/Sebzeler.png'
+        elif "süt" in cat_lower or "peynir" in cat_lower or "yoğurt" in cat_lower:
+            img_src = 'assets/SutUrunleri.png'
+        elif "meyve" in cat_lower:
+            img_src = 'assets/Meyveler.png'
+        elif "kahvaltı" in cat_lower or "yumurta" in cat_lower or "reçel" in cat_lower:
+            img_src = 'assets/Kahvaltilik.png'
+        elif "içecek" in cat_lower or "su" in cat_lower or "kola" in cat_lower:
+            img_src = 'assets/Icecekler.png'
+        elif "hamur" in cat_lower or "ekmek" in cat_lower or "makarna" in cat_lower:
+            img_src = 'assets/Hamur_isi.png'
+        elif "et" in cat_lower or "tavuk" in cat_lower or "kıyma" in cat_lower or "sucuk" in cat_lower or "salam" in cat_lower:
+            img_src = 'assets/EtUrunleri.png'
+        elif "bakliyat" in cat_lower or "pirinç" in cat_lower or "mercimek" in cat_lower:
+            img_src = 'assets/Bakliyatlar.png'
         else:
-            img_src = 'assets/mascot_4.png'
+            img_src = 'assets/Diger.png'
         
         # Resim (Maskot olarak)
         self.add_widget(Image(source=img_src, size_hint_y=None, height=dp(50)))
