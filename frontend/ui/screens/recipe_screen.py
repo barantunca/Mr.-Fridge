@@ -103,7 +103,7 @@ class RecipeScreen(Screen):
             spacing=dp(6),
         )
         recipe_card.add_widget(StyledLabel(
-            text="📜  Oluşturulan Tarif:",
+            text="Oluşturulan Tarif:",
             font_size="13sp",
             bold=True,
             color=ACCENT2,

@@ -19,28 +19,49 @@ from ui.theme import TEXT_PRI, TEXT_SEC, SUCCESS, BG_CARD, TRANSPARENT, SIZE_BOD
 from ui.widgets import CardWidget, StyledLabel, CustomTopBar, SuccessButton
 
 class MenuRow(ButtonBehavior, BoxLayout):
-    """
-    Açılır-kapanır (Accordion) yapısındaki menü satırı bileşeni.
-    Kullanıcı bu satıra tıkladığında altındaki içerik görünür hale gelir.
-    """
-    def __init__(self, title, is_expanded, **kwargs):
+    def __init__(self, title, is_expanded, icon_source=None, **kwargs):
         super().__init__(**kwargs)
         self.orientation = "horizontal"
         self.size_hint_y = None
         self.height = dp(60)
-        self.padding = dp(16)
+        self.padding = [dp(20), dp(10), dp(16), dp(10)] # Sol padding
+        self.spacing = dp(15) # İkon ve metin arası boşluk
         
         with self.canvas.before:
             Color(*BG_CARD)
             self.rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[dp(12)])
         self.bind(pos=self._update_rect, size=self._update_rect)
         
-        self.add_widget(StyledLabel(text=title, font_size=SIZE_BODY, bold=True, color=TEXT_PRI))
+        # 1. İkon ekleme
+        if icon_source:
+            self.add_widget(Image(
+                source=icon_source,
+                size_hint=(None, None),
+                size=(dp(28), dp(28)),
+                pos_hint={'center_y': 0.5}
+            ))
         
-        # Aşağı/Yukarı Oku (Kivy varsayılan fontunda düzgün çıkan basit semboller)
+        # 2. Başlık (Metin)
+        self.add_widget(StyledLabel(
+            text=title, 
+            font_size=SIZE_BODY, 
+            bold=True, 
+            color=TEXT_PRI,
+            halign="left"
+        ))
+        
+        # 3. Aşağı/Yukarı Oku
         icon = "v" if not is_expanded else "^" 
-        self.add_widget(StyledLabel(text=icon, font_size="18sp", color=TEXT_SEC, size_hint_x=None, width=dp(30), halign="right"))
+        self.add_widget(StyledLabel(
+            text=icon, 
+            font_size="18sp", 
+            color=TEXT_SEC, 
+            size_hint_x=None, 
+            width=dp(30), 
+            halign="right"
+        ))
         
+    # EKSİK OLAN VE HATAYA SEBEP OLAN FONKSİYON:
     def _update_rect(self, *args):
         self.rect.pos = self.pos
         self.rect.size = self.size
@@ -91,16 +112,24 @@ class ProfileScreen(Screen):
         avatar_box.add_widget(StyledLabel(text="Değiştirmek için fotoğrafa dokun", font_size="10sp", color=TEXT_SEC, halign="center"))
         self.content_area.add_widget(avatar_box)
 
-        # 2. Kişisel Bilgiler Satırı
-        row1 = MenuRow(title="Kişisel Bilgiler", is_expanded=(self.expanded_section == "kisisel"))
+        # 2. Kişisel Bilgiler Satırı (İkon eklendi)
+        row1 = MenuRow(
+            title="Kişisel Bilgiler", 
+            is_expanded=(self.expanded_section == "kisisel"),
+            icon_source="assets/KisiselBilgiler.png" # İkon dosyanın adı
+        )
         row1.bind(on_release=lambda x: self._toggle_section("kisisel"))
         self.content_area.add_widget(row1)
         
         if self.expanded_section == "kisisel":
             self.content_area.add_widget(self._build_kisisel_content())
 
-        # 3. Yemek Tercihleri Satırı
-        row2 = MenuRow(title="Yemek Tercihleri", is_expanded=(self.expanded_section == "tercihler"))
+        # 3. Yemek Tercihleri Satırı (İkon eklendi)
+        row2 = MenuRow(
+            title="Yemek Tercihleri", 
+            is_expanded=(self.expanded_section == "tercihler"),
+            icon_source="assets/YemekTercihleri.png" # İkon dosyanın adı
+        )
         row2.bind(on_release=lambda x: self._toggle_section("tercihler"))
         self.content_area.add_widget(row2)
         
