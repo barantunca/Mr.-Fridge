@@ -29,7 +29,7 @@ jobs:
           pip install --upgrade Cython==0.29.33 virtualenv buildozer
 
       - name: Buildozer ile APK Derle
-        run: buildozer android debug
+        run: yes | buildozer android debug
 
       - name: APK Dosyasını Kaydet
         uses: actions/upload-artifact@v4
