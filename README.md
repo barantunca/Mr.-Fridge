@@ -8,5 +8,3 @@ A mobile application designed to help you manage your refrigerator's inventory a
 - Keep track of your inventory.
 - Get recipe suggestions based on what you have.
 
-## Tech Stack
-- **Frontend:** Flutter
