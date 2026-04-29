@@ -113,9 +113,9 @@ class RecipeScreen(Screen):
         recipe_card.add_widget(Divider())
 
         recipe_scroll = ScrollView(do_scroll_x=False)
-        self.recipe_label = Label(
+        self.recipe_label = StyledLabel(
             text="Malzeme seç ve 'Tarif Üret'e bas…",
-            font_size=SIZE_SMALL,
+            font_size=SIZE_BODY,
             color=TEXT_SEC,
             halign="left",
             valign="top",
@@ -123,10 +123,7 @@ class RecipeScreen(Screen):
             markup=True,
         )
         self.recipe_label.bind(
-            texture_size=lambda inst, val: setattr(inst, "height", val[1] + dp(16))
-        )
-        self.recipe_label.bind(
-            width=lambda inst, val: setattr(inst, "text_size", (val, None))
+            texture_size=lambda inst, val: setattr(inst, "height", val[1] + dp(24))
         )
         recipe_scroll.add_widget(self.recipe_label)
         recipe_card.add_widget(recipe_scroll)
