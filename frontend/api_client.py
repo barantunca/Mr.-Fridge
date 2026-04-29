@@ -7,7 +7,7 @@ from kivy.utils import platform
 
 # Android'de test ediliyorsa cihazın ağ IP'si veya emulator IP'si kullanılır
 if platform == 'android':
-    BASE_URL = "http://10.0.2.2:8000"  # Fiziksel cihaz için burayı Wi-Fi IP'nizle (Örn: 192.168.x.x) değiştirin
+    BASE_URL = "http://10.75.185.86:8000"  # Fiziksel cihaz için burayı Wi-Fi IP'nizle (Örn: 192.168.x.x) değiştirin
 else:
     BASE_URL = "http://127.0.0.1:8000"
 FRIDGE_ID = 1  # Şimdilik sabit
