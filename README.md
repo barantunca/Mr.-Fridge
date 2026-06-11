@@ -204,7 +204,7 @@ python main.py
 
 ---
 
-## 📚 API Documentation
+##  API Documentation
 
 Full API reference is available in **[API.md](API.md)**.
 
