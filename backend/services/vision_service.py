@@ -5,13 +5,13 @@ from PIL import Image
 from core.api_key_store import get_api_key, has_valid_key as _store_has_valid_key
 
 
-# Geçerli bir API key var mı kontrol et
+# Check whether a valid API key is available
 def _has_valid_api_key() -> bool:
     return _store_has_valid_key()
 
 
 def compress_image_base64(base64_str: str, max_size: tuple = (512, 512)) -> str:
-    """Gelen Base64 görüntüyü küçültüp optimize ederek geri döndürür."""
+    """Resizes and optimizes an incoming Base64 image and returns it as Base64."""
     try:
         image_data = base64.b64decode(base64_str)
         img = Image.open(BytesIO(image_data))
@@ -24,11 +24,11 @@ def compress_image_base64(base64_str: str, max_size: tuple = (512, 512)) -> str:
 
 
 async def identify_item_from_base64(base64_image: str) -> str:
-    # API key yoksa veya test key'i ise anlamlı hata ver
+    # Raise a meaningful error if API key is missing or a test key
     if not _has_valid_api_key():
         raise ValueError(
-            "OpenAI API key eksik veya geçersiz. "
-            "backend/.env dosyasına gerçek OPENAI_API_KEY değerini girin."
+            "OpenAI API key is missing or invalid. "
+            "Please enter a valid OPENAI_API_KEY in backend/.env."
         )
 
     from openai import AsyncOpenAI, AuthenticationError
@@ -47,9 +47,9 @@ async def identify_item_from_base64(base64_image: str) -> str:
                         {
                             "type": "text",
                             "text": (
-                                "Bu resimde elimde tuttuğum veya odaklanılan eşya nedir? "
-                                "Sadece tek bir kelime veya çok kısa bir isimle "
-                                "(örneğin: Süt, Yarım Elma) Türkçe olarak cevap ver."
+                                "What is the item I am holding or focusing on in this image? "
+                                "Answer with only a single word or a very short name "
+                                "(e.g.: Milk, Half Apple) in English."
                             ),
                         },
                         {
@@ -68,7 +68,7 @@ async def identify_item_from_base64(base64_image: str) -> str:
 
     except AuthenticationError:
         raise ValueError(
-            "OpenAI API key geçersiz. backend/.env dosyasına doğru OPENAI_API_KEY girin."
+            "Invalid OpenAI API key. Please enter the correct OPENAI_API_KEY in backend/.env."
         )
     except Exception as e:
-        raise Exception(f"Görüntü işlenirken bir hata oluştu: {str(e)}")
+        raise Exception(f"An error occurred while processing the image: {str(e)}")

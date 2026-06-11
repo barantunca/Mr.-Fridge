@@ -1,16 +1,16 @@
 """
-api_client.py — Mr. Fridge backend ile tüm HTTP iletişimi burada yapılır.
+api_client.py — All HTTP communication with the Mr. Fridge backend is handled here.
 """
 import requests
 
 from kivy.utils import platform
 
-# Android'de test ediliyorsa cihazın ağ IP'si veya emulator IP'si kullanılır
+# On Android, use the device's network IP or the emulator IP
 if platform == 'android':
-    BASE_URL = "http://10.75.185.86:8000"  # Fiziksel cihaz için burayı Wi-Fi IP'nizle (Örn: 192.168.x.x) değiştirin
+    BASE_URL = "http://10.0.2.2:8000"  # For physical devices, replace with your Wi-Fi IP (e.g. 192.168.x.x)
 else:
     BASE_URL = "http://127.0.0.1:8000"
-FRIDGE_ID = 1  # Şimdilik sabit
+FRIDGE_ID = 1  # Fixed for now
 
 
 def _handle_error(e: Exception) -> dict:
@@ -72,7 +72,7 @@ def delete_item(item_id: int) -> dict:
 
 
 def get_categorized_inventory(fridge_id: int = FRIDGE_ID) -> dict:
-    """GET /inventory/{id}/categorized → {"Sebze": ["Domates", ...], ...}"""
+    """GET /inventory/{id}/categorized → {"Vegetable": ["Tomato", ...], ...}"""
     try:
         resp = requests.get(
             f"{BASE_URL}/inventory/{fridge_id}/categorized", timeout=10
@@ -86,7 +86,7 @@ def get_categorized_inventory(fridge_id: int = FRIDGE_ID) -> dict:
 # ── RECIPE ────────────────────────────────────────────────────────────────────
 
 def generate_recipe_stream(ingredients: list):
-    """POST /recipe/generate — streaming. Generator: chunk'ları yield eder."""
+    """POST /recipe/generate — streaming. Generator: yields chunks."""
     try:
         with requests.post(
             f"{BASE_URL}/recipe/generate",
@@ -99,7 +99,7 @@ def generate_recipe_stream(ingredients: list):
                 if chunk:
                     yield chunk.decode("utf-8")
     except Exception as e:
-        yield f"\n[Hata: {e}]"
+        yield f"\n[Error: {e}]"
 
 
 # ── SETTINGS ──────────────────────────────────────────────────────────────────
@@ -115,7 +115,7 @@ def get_api_key_status() -> dict:
 
 
 def save_api_key(api_key: str) -> dict:
-    """POST /settings/api-key — yeni key'i backend'e kaydet."""
+    """POST /settings/api-key — save a new key to the backend."""
     try:
         resp = requests.post(
             f"{BASE_URL}/settings/api-key",
@@ -129,7 +129,7 @@ def save_api_key(api_key: str) -> dict:
 
 
 def delete_api_key() -> dict:
-    """DELETE /settings/api-key — kayıtlı key'i sil."""
+    """DELETE /settings/api-key — remove the stored key."""
     try:
         resp = requests.delete(f"{BASE_URL}/settings/api-key", timeout=8)
         resp.raise_for_status()

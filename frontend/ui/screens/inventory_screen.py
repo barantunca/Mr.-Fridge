@@ -1,5 +1,5 @@
 """
-inventory_screen.py — Envanter ekranı
+inventory_screen.py — Inventory screen
 """
 import threading
 
@@ -28,11 +28,12 @@ class InventoryScreen(Screen):
     def _build_ui(self):
         root = BoxLayout(orientation="vertical", spacing=0)
 
-        titlebar = CustomTopBar(title_text="Envanter", right_icon="")
+        # ── HEADER ─────────────────────────────────────────────────────────────
+        titlebar = CustomTopBar(title_text="Inventory", right_icon="")
         root.add_widget(titlebar)
 
         self.status_lbl = StyledLabel(
-            text="Yükleniyor…",
+            text="Loading…",
             font_size="12sp",
             color=TEXT_SEC,
             size_hint_y=None,
@@ -41,6 +42,7 @@ class InventoryScreen(Screen):
         )
         root.add_widget(self.status_lbl)
 
+        # ── SCROLLABLE LIST ────────────────────────────────────────────────────
         self.scroll = ScrollView(do_scroll_x=False)
         self.list_layout = BoxLayout(
             orientation="vertical",
@@ -58,7 +60,7 @@ class InventoryScreen(Screen):
         self._load_items()
 
     def _load_items(self):
-        self.status_lbl.text = "Yükleniyor…"
+        self.status_lbl.text = "⏳  Loading…"
         self.list_layout.clear_widgets()
         threading.Thread(target=self._fetch_items, daemon=True).start()
 
@@ -73,7 +75,7 @@ class InventoryScreen(Screen):
         if not items:
             self.status_lbl.text = ""
             empty_lbl = StyledLabel(
-                text="Buzdolabın boş!\nOrtadaki + butonundan ürün ekleyebilirsin.",
+                text="Your fridge is empty!\nUse the + button in the center to add items.",
                 font_size=SIZE_BODY,
                 color=TEXT_SEC,
                 halign="center",
@@ -83,52 +85,31 @@ class InventoryScreen(Screen):
             self.list_layout.add_widget(empty_lbl)
             return
 
-        self.status_lbl.text = f"{len(items)} ürün."
+        self.status_lbl.text = f"{len(items)} items."
 
-        from collections import defaultdict
-        grouped_items = defaultdict(list)
+        self.list_layout.add_widget(StyledLabel(
+            text="All Items",
+            font_size="13sp",
+            bold=True,
+            color=TEXT_SEC,
+            size_hint_y=None,
+            height=dp(20)
+        ))
+
+        grid = GridLayout(cols=2, spacing=dp(12), size_hint_y=None, row_default_height=dp(130), row_force_default=True)
+        grid.bind(minimum_height=grid.setter('height'))
+
+        # Real items from FastAPI backend
         for item in sorted(items, key=lambda x: x.get('days_left', 99)):
-            cat = item.get("category", "Diğer")
-            if not cat:
-                cat = "Diğer"
-            grouped_items[cat].append(item)
+            # Use days_left or default to 5 if not provided
+            days = item.get("days_left", 5)
+            card = ProductCard(name=item["name"], days_left=days)
+            grid.add_widget(card)
 
-        for category_name, cat_items in grouped_items.items():
-            # Kategori Başlığı
-            self.list_layout.add_widget(StyledLabel(
-                text=str(category_name).upper(),
-                font_size="14sp",
-                bold=True,
-                color=TEXT_PRI,
-                size_hint_y=None,
-                height=dp(30)
-            ))
-
-            # Ürünlerin grid'i
-            grid = GridLayout(cols=2, spacing=dp(12), size_hint_y=None, row_default_height=dp(130), row_force_default=True)
-            grid.bind(minimum_height=grid.setter('height'))
-
-            for item in cat_items:
-                days = item.get("days_left", 5)
-                card = ProductCard(
-                    name=item["name"], 
-                    category=item.get("category", "Diğer"),
-                    days_left=days,
-                    item_id=item.get("id"),
-                    on_delete=self._delete_item
-                )
-                grid.add_widget(card)
-
-            if len(cat_items) % 2 != 0:
-                grid.add_widget(Widget()) # Force second column for 50% width
-
-            self.list_layout.add_widget(grid)
-            
-            # Kategoriler arası ekstra esneme boşluğu
-            self.list_layout.add_widget(Widget(size_hint_y=None, height=dp(10)))
+        self.list_layout.add_widget(grid)
 
     def _delete_item(self, item_id: int):
-        self.status_lbl.text = "Siliniyor…"
+        self.status_lbl.text = "⏳  Deleting…"
         threading.Thread(target=lambda: self._do_delete(item_id), daemon=True).start()
 
     def _do_delete(self, item_id: int):

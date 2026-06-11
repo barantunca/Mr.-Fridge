@@ -1,8 +1,8 @@
 """
-scan_screen.py — Kamera Tarama ekranı
-OpenCV (CAP_DSHOW) ile canlı akışı çeker, kareyi base64'e çevirir,
-backend /camera/scan endpoint'ine gönderir, sonuç gösterir
-ve onaylanınca /inventory/add'e ekler.
+scan_screen.py — Camera Scan screen
+Captures a live stream with OpenCV (CAP_DSHOW), converts a frame to base64,
+sends it to the backend /camera/scan endpoint, displays the result,
+and adds the confirmed item to /inventory/add.
 """
 import base64
 import threading
@@ -32,19 +32,20 @@ class ScanScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._scan_result = {}
-        self._cap = None            
-        self._camera_image = None   
-        self._clock_event = None    
-        self._last_frame = None     
+        self._cap = None            # cv2.VideoCapture object
+        self._camera_image = None   # KivyImage (displayed on canvas)
+        self._clock_event = None    # Clock loop event
+        self._last_frame = None     # Last captured raw frame (numpy array)
         self._build_ui()
 
     def _build_ui(self):
         self.root_layout = BoxLayout(orientation="vertical", padding=dp(16), spacing=dp(12))
 
+        # ── BACK BUTTON + TITLE ────────────────────────────────────────────────
         top_bar = BoxLayout(orientation="horizontal", size_hint_y=None, height=dp(44), spacing=dp(8))
 
         back_btn = Button(
-            text="← Geri",
+            text="← Back",
             size_hint_x=None,
             width=dp(80),
             background_color=TRANSPARENT,
@@ -56,7 +57,7 @@ class ScanScreen(Screen):
         top_bar.add_widget(back_btn)
 
         title = StyledLabel(
-            text="Ürün Tara",
+            text="📷  Scan Item",
             font_size=SIZE_TITLE,
             bold=True,
             halign="center",
@@ -65,31 +66,35 @@ class ScanScreen(Screen):
         top_bar.add_widget(Widget(size_hint_x=None, width=dp(80)))
         self.root_layout.add_widget(top_bar)
 
+        # ── CAMERA AREA ────────────────────────────────────────────────────────
         self.camera_placeholder = CardWidget(
             padding=dp(4), size_hint_y=0.5,
             orientation="vertical",
         )
         self.camera_status_lbl = StyledLabel(
-            text="Kamera başlatılıyor…",
+            text="📷  Starting camera…",
             font_size=SIZE_BODY,
             color=TEXT_SEC,
             halign="center",
         )
         self.camera_placeholder.add_widget(self.camera_status_lbl)
 
+        # KivyImage — frames will be written here
         self._camera_image = KivyImage(allow_stretch=True, keep_ratio=True)
         self.camera_placeholder.add_widget(self._camera_image)
 
         self.root_layout.add_widget(self.camera_placeholder)
 
+        # ── SCAN BUTTON ────────────────────────────────────────────────────────
         self.scan_btn = GradientButton(
-            text="Taramayı Başlat",
+            text="🔍  Start Scan",
             size_hint_y=None,
             height=dp(52),
         )
         self.scan_btn.bind(on_release=self._on_scan)
         self.root_layout.add_widget(self.scan_btn)
 
+        # ── RESULT CARD ────────────────────────────────────────────────────────
         self.result_card = CardWidget(
             orientation="vertical",
             padding=dp(16),
@@ -98,7 +103,7 @@ class ScanScreen(Screen):
             height=dp(140),
         )
         self.result_name_lbl = StyledLabel(
-            text="Sonuç burada görünecek…",
+            text="Result will appear here…",
             font_size=SIZE_BODY,
             color=TEXT_SEC,
             halign="center",
@@ -110,7 +115,7 @@ class ScanScreen(Screen):
             halign="center",
         )
         self.add_btn = SuccessButton(
-            text="Envantere Ekle",
+            text="✅  Add to Inventory",
             size_hint_y=None,
             height=dp(44),
             disabled=True,
@@ -125,34 +130,41 @@ class ScanScreen(Screen):
         self.root_layout.add_widget(Widget())
         self.add_widget(self.root_layout)
 
+    # ── SCREEN ENTER / LEAVE ──────────────────────────────────────────────────
 
     def on_enter(self, *args):
+        """Start the camera when entering the screen."""
         self._scan_result = {}
-        self.result_name_lbl.text = "Sonuç burada görünecek…"
+        self.result_name_lbl.text = "Result will appear here…"
         self.result_name_lbl.color = TEXT_SEC
         self.result_cat_lbl.text = ""
         self.add_btn.disabled = True
         self.scan_btn.disabled = False
-        self.scan_btn.text = "Taramayı Başlat"
+        self.scan_btn.text = "🔍  Start Scan"
 
         Clock.schedule_once(self._start_camera, 0.3)
 
     def _start_camera(self, dt):
+        """Start the camera with OpenCV (runs in background)."""
         if self._cap is not None and self._cap.isOpened():
+            # Already open — restart the frame loop
             self._start_frame_loop()
             return
 
-        self.camera_status_lbl.text = "Kamera açılıyor…"
+        self.camera_status_lbl.text = "📷  Opening camera…"
         threading.Thread(target=self._open_camera_thread, daemon=True).start()
 
     def _open_camera_thread(self):
+        """Open the camera in the background (CAP_DSHOW is much faster on Windows)."""
         try:
             import cv2
+            # DirectShow backend: significantly faster than the default MF on Windows
             cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
             if not cap.isOpened():
+                # Fall back to default backend if DSHOW fails
                 cap = cv2.VideoCapture(0)
             if not cap.isOpened():
-                Clock.schedule_once(lambda dt: self._on_camera_error("Kamera bulunamadı veya erişim reddedildi."))
+                Clock.schedule_once(lambda dt: self._on_camera_error("Camera not found or access was denied."))
                 return
             cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
             cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
@@ -160,7 +172,7 @@ class ScanScreen(Screen):
             Clock.schedule_once(lambda dt: self._on_camera_ready())
         except ImportError:
             Clock.schedule_once(lambda dt: self._on_camera_error(
-                "opencv-python yüklü değil.\npip install opencv-python"
+                "opencv-python is not installed.\npip install opencv-python"
             ))
         except Exception as e:
             Clock.schedule_once(lambda dt: self._on_camera_error(str(e)))
@@ -170,15 +182,17 @@ class ScanScreen(Screen):
         self._start_frame_loop()
 
     def _on_camera_error(self, msg: str):
-        self.camera_status_lbl.text = f"Kamera açılamadı:\n{msg}\n\nLütfen kamera iznini kontrol edin."
+        self.camera_status_lbl.text = f"⚠️ Camera could not be opened:\n{msg}\n\nPlease check camera permissions."
         self.camera_status_lbl.color = DANGER
 
     def _start_frame_loop(self):
+        """Start a 30 FPS frame update loop with Clock."""
         if self._clock_event is not None:
             return
         self._clock_event = Clock.schedule_interval(self._update_frame, 1.0 / 30)
 
     def _update_frame(self, dt):
+        """Grab a frame from OpenCV on each tick and write it to KivyImage."""
         if self._cap is None or not self._cap.isOpened():
             return
         try:
@@ -186,10 +200,12 @@ class ScanScreen(Screen):
             ret, frame = self._cap.read()
             if not ret:
                 return
+            # BGR → RGB
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            # Vertical flip for Kivy (coordinate system difference)
             frame_flip = np.flipud(frame_rgb)
             h, w, _ = frame_flip.shape
-            self._last_frame = frame_rgb  
+            self._last_frame = frame_rgb  # Save unflipped frame for scanning
 
             texture = Texture.create(size=(w, h), colorfmt='rgb')
             texture.blit_buffer(frame_flip.tobytes(), colorfmt='rgb', bufferfmt='ubyte')
@@ -198,6 +214,7 @@ class ScanScreen(Screen):
             pass
 
     def on_leave(self, *args):
+        """Stop the camera when leaving the screen."""
         self._stop_camera()
 
     def _stop_camera(self):
@@ -213,6 +230,7 @@ class ScanScreen(Screen):
         self._last_frame = None
 
     def _go_back(self, *args):
+        """Navigate back to the home screen."""
         self._stop_camera()
         if self.manager:
             self.manager.current = "home"
@@ -224,22 +242,24 @@ class ScanScreen(Screen):
             except Exception:
                 pass
 
+    # ── SCANNING ──────────────────────────────────────────────────────────────
 
     def _on_scan(self, *args):
         if self._last_frame is None:
-            self.result_name_lbl.text = "Kamera henüz hazır değil."
+            self.result_name_lbl.text = "⚠️ Camera is not ready yet."
             self.result_name_lbl.color = DANGER
             return
 
         self.scan_btn.disabled = True
-        self.scan_btn.text = "Analiz ediliyor…"
-        self.result_name_lbl.text = "Yapay zeka ile analiz ediliyor…"
+        self.scan_btn.text = "⏳  Analyzing…"
+        self.result_name_lbl.text = "Analyzing with AI…"
         self.result_name_lbl.color = TEXT_SEC
         self.result_cat_lbl.text = ""
         self.add_btn.disabled = True
 
-        frame = self._last_frame.copy()  
+        frame = self._last_frame.copy()  # Thread-safe copy
 
+        # numpy RGB → PIL → JPEG → base64
         img = PILImage.fromarray(frame)
         buf = io.BytesIO()
         img.save(buf, format='JPEG', quality=85)
@@ -253,24 +273,25 @@ class ScanScreen(Screen):
 
     def _on_scan_done(self, result: dict):
         self.scan_btn.disabled = False
-        self.scan_btn.text = "Tekrar Tara"
+        self.scan_btn.text = "🔍  Scan Again"
         if "error" in result:
-            self.result_name_lbl.text = f"Hata: {result['error']}"
+            self.result_name_lbl.text = f"❌ Error: {result['error']}"
             self.result_name_lbl.color = DANGER
             self.result_cat_lbl.text = ""
         else:
             self._scan_result = result
-            self.result_name_lbl.text = f"{result.get('name', '?')}"
+            self.result_name_lbl.text = f"🏷️  {result.get('name', '?')}"
             self.result_name_lbl.color = TEXT_PRI
-            self.result_cat_lbl.text = f"Kategori: {result.get('category', '?')}"
+            self.result_cat_lbl.text = f"Category: {result.get('category', '?')}"
             self.add_btn.disabled = False
 
+    # ── ADD TO INVENTORY ──────────────────────────────────────────────────────
 
     def _on_add_item(self, *args):
         if not self._scan_result:
             return
         name = self._scan_result.get("name", "")
-        category = self._scan_result.get("category", "Diğer")
+        category = self._scan_result.get("category", "Other")
         self.add_btn.disabled = True
 
         def do_add():
@@ -281,11 +302,11 @@ class ScanScreen(Screen):
 
     def _on_add_done(self, resp: dict, name: str):
         if "error" in resp:
-            self.result_name_lbl.text = f"Eklenemedi: {resp['error']}"
+            self.result_name_lbl.text = f"❌ Could not add: {resp['error']}"
             self.result_name_lbl.color = DANGER
             self.add_btn.disabled = False
         else:
-            self.result_name_lbl.text = f"{name} envantere eklendi!"
+            self.result_name_lbl.text = f"✅  {name} added to inventory!"
             self.result_name_lbl.color = SUCCESS
             self.result_cat_lbl.text = ""
             self._scan_result = {}

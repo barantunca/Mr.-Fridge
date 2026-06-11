@@ -2,7 +2,7 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 
 
-# Uygulamaya özel fırlatacağımız kontrollü hata sınıfı
+# Custom exception class for controlled application errors
 class MrFridgeException(Exception):
     def __init__(self, error_type: str, message: str, status_code: int = 400):
         self.error_type = error_type
@@ -10,7 +10,7 @@ class MrFridgeException(Exception):
         self.status_code = status_code
 
 
-# 1. Bizim bilerek fırlattığımız hataları (MrFridgeException) yakalayacak fonksiyon
+# 1. Handler for intentional errors we raise (MrFridgeException)
 async def mrfridge_exception_handler(request: Request, exc: MrFridgeException):
     return JSONResponse(
         status_code=exc.status_code,
@@ -22,15 +22,15 @@ async def mrfridge_exception_handler(request: Request, exc: MrFridgeException):
     )
 
 
-# 2. Gözden kaçan, sistemin fırlattığı genel hataları (Exception) yakalayacak fonksiyon
+# 2. Handler for unexpected system errors (Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    # Gerçek bir projede buraya loglama (Sentry vb.) eklenir
+    # In a production project, add logging here (e.g. Sentry)
     return JSONResponse(
         status_code=500,
         content={
             "status": "fatal_error",
             "error_type": "InternalServerError",
-            "message": "Sunucu tarafında beklenmeyen bir hata oluştu.",
-            "details": str(exc),  # Geliştirme aşamasında hatayı görmek için
+            "message": "An unexpected error occurred on the server.",
+            "details": str(exc),  # Visible during development for debugging
         },
     )

@@ -7,11 +7,11 @@ from PIL import Image, ImageTk
 import base64
 from openai import OpenAI
 
-# .env dosyasındaki gizli anahtarı sisteme yükle
+# Load the secret key from the .env file into the environment
 load_dotenv()
 API_KEY = os.getenv("OPENAI_API_KEY")
 
-# OpenAI istemcisini güvenli anahtar ile başlat
+# Initialize the OpenAI client with the secure key
 client = OpenAI(api_key=API_KEY)
 
 
@@ -20,10 +20,10 @@ class MrFridgeApp:
         self.window = window
         self.window.title(window_title)
 
-        # Kamerayı başlat
+        # Start the camera
         self.vid = cv2.VideoCapture(0)
 
-        # Arayüz elemanları
+        # UI elements
         self.canvas = tk.Canvas(
             window,
             width=self.vid.get(cv2.CAP_PROP_FRAME_WIDTH),
@@ -31,56 +31,56 @@ class MrFridgeApp:
         )
         self.canvas.pack()
 
-        self.sonuc_label = tk.Label(
+        self.result_label = tk.Label(
             window,
-            text="Kameraya bir eşya gösterin ve 'Tara'ya basın.",
+            text="Show an item to the camera and press 'SCAN'.",
             font=("Arial", 14),
             fg="blue",
         )
-        self.sonuc_label.pack(pady=10)
+        self.result_label.pack(pady=10)
 
-        self.btn_tara = tk.Button(
+        self.btn_scan = tk.Button(
             window,
-            text="TARA",
+            text="SCAN",
             width=20,
             height=2,
-            command=self.tara,
+            command=self.scan,
             font=("Arial", 12, "bold"),
             bg="#4CAF50",
             fg="white",
         )
-        self.btn_tara.pack(pady=10)
+        self.btn_scan.pack(pady=10)
 
         self.delay = 15
-        self.update_kamera()
+        self.update_camera()
 
         self.window.mainloop()
 
-    def update_kamera(self):
+    def update_camera(self):
         ret, frame = self.vid.read()
         if ret:
             cv_img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             self.photo = ImageTk.PhotoImage(image=Image.fromarray(cv_img))
             self.canvas.create_image(0, 0, image=self.photo, anchor=tk.NW)
-        self.window.after(self.delay, self.update_kamera)
+        self.window.after(self.delay, self.update_camera)
 
-    def tara(self):
+    def scan(self):
         ret, frame = self.vid.read()
         if ret:
-            self.sonuc_label.config(
-                text="Mr.Fridge inceliyor, lütfen bekleyin...", fg="orange"
+            self.result_label.config(
+                text="Mr.Fridge is analyzing, please wait...", fg="orange"
             )
             self.window.update()
 
-            # Görüntüyü JPG formatında belleğe al
+            # Encode the image in JPG format in memory
             success, encoded_image = cv2.imencode(".jpg", frame)
 
             if success:
-                # Base64 formatına çevir
+                # Convert to base64 format
                 base64_image = base64.b64encode(encoded_image).decode("utf-8")
 
                 try:
-                    # OpenAI API'ye (GPT-4o) Base64 görüntüyü ve promptu gönder
+                    # Send the base64 image and prompt to the OpenAI API (GPT-4o)
                     response = client.chat.completions.create(
                         model="gpt-4o",
                         messages=[
@@ -89,7 +89,7 @@ class MrFridgeApp:
                                 "content": [
                                     {
                                         "type": "text",
-                                        "text": "Bu resimde elimde tuttuğum veya odaklanılan eşya nedir? Sadece tek bir kelime veya çok kısa bir isimle (örneğin: Süt, Yarım Elma, Ketçap Şişesi) Türkçe olarak cevap ver.",
+                                        "text": "What is the item I am holding or focusing on in this image? Answer with only a single word or a very short name (e.g.: Milk, Half Apple, Ketchup Bottle) in English.",
                                     },
                                     {
                                         "type": "image_url",
@@ -100,20 +100,20 @@ class MrFridgeApp:
                                 ],
                             }
                         ],
-                        max_tokens=50,  # Sadece kısa bir cevap istediğimiz için token sınırını düşük tutuyoruz
+                        max_tokens=50,  # Low token limit since we only need a short answer
                     )
 
-                    # Gelen cevabı al ve ekrana yaz
-                    sonuc_metni = response.choices[0].message.content.strip()
-                    self.sonuc_label.config(
-                        text=f"Tespit Edildi: {sonuc_metni}", fg="green"
+                    # Retrieve the response and display it
+                    result_text = response.choices[0].message.content.strip()
+                    self.result_label.config(
+                        text=f"Detected: {result_text}", fg="green"
                     )
 
                 except Exception as e:
-                    self.sonuc_label.config(text="API Bağlantı Hatası!", fg="red")
+                    self.result_label.config(text="API Connection Error!", fg="red")
                     messagebox.showerror(
-                        "Hata Detayı",
-                        f"OpenAI API Hatası:\n{str(e)}\n\nLütfen API anahtarınızı ve bakiyenizi kontrol edin.",
+                        "Error Details",
+                        f"OpenAI API Error:\n{str(e)}\n\nPlease check your API key and account balance.",
                     )
 
     def __del__(self):
@@ -123,4 +123,4 @@ class MrFridgeApp:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = MrFridgeApp(root, "Mr.Fridge - Akıllı Nesne Tanıma")
+    app = MrFridgeApp(root, "Mr.Fridge - Smart Item Recognition")

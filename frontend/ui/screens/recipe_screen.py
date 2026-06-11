@@ -1,5 +1,8 @@
 """
-recipe_screen.py — Tarif üretme ekranı
+recipe_screen.py — Recipe generation screen
+Loads ingredients from the inventory, lets the user select them via checkboxes,
+and when "Generate Recipe" is tapped, sends a request to /recipe/generate
+and displays the streaming response in real time.
 """
 import threading
 
@@ -12,32 +15,32 @@ from kivy.uix.label import Label
 from kivy.uix.image import Image
 from kivy.clock import Clock
 from kivy.metrics import dp
-from kivy.uix.behaviors import ButtonBehavior
-from kivy.graphics import Color, RoundedRectangle
 
 import api_client
 from ui.theme import (
     ACCENT, ACCENT2, SUCCESS, TEXT_PRI, TEXT_SEC,
     BG_CARD, SIZE_TITLE, SIZE_BODY, SIZE_SMALL
 )
-from ui.widgets import CardWidget, StyledLabel, Divider, CustomTopBar
+from ui.widgets import CardWidget, StyledLabel, GradientButton, Divider, CustomTopBar
 
 
 class RecipeScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._ingredient_checkboxes = {}  
+        self._ingredient_checkboxes = {}  # name → CheckBox widget
         self._streaming = False
         self._build_ui()
 
     def _build_ui(self):
         root = BoxLayout(orientation="vertical", spacing=0)
 
-        titlebar = CustomTopBar(title_text="Tarifler", right_icon="")
+        # ── HEADER ─────────────────────────────────────────────────────────────
+        titlebar = CustomTopBar(title_text="Recipes", right_icon="")
         root.add_widget(titlebar)
 
         content = BoxLayout(orientation="vertical", padding=dp(16), spacing=dp(10))
 
+        # ── SELECT INGREDIENTS ─────────────────────────────────────────────────
         ing_card = CardWidget(
             orientation="vertical",
             padding=dp(12),
@@ -47,12 +50,13 @@ class RecipeScreen(Screen):
         )
         ing_header = BoxLayout(orientation="horizontal", size_hint_y=None, height=dp(28))
         ing_header.add_widget(StyledLabel(
-            text="Malzemeleri seç:",
+            text="Select ingredients:",
             font_size="13sp",
             bold=True,
             color=ACCENT2,
         ))
-        mascot = Image(source='assets/mascot_2.png', size_hint=(None, None), size=(dp(40), dp(40)))
+        # Mascot image (decorative corner element)
+        mascot = Image(source='assets/mascot_2.jpg', size_hint=(None, None), size=(dp(40), dp(40)))
         ing_header.add_widget(mascot)
         
         ing_card.add_widget(ing_header)
@@ -69,41 +73,23 @@ class RecipeScreen(Screen):
         ing_card.add_widget(ing_scroll)
         content.add_widget(ing_card)
 
-        # ── ÜRETİL BUTONU (YENİ İKONLU VERSİYON) ──────────────────────────────
-        class RecipeButton(ButtonBehavior, BoxLayout):
-            def __init__(self, **kwargs):
-                # Buton yüksekliği dp(52), yatay padding dp(20), öğeler arası spacing dp(10)
-                super().__init__(orientation="horizontal", padding=[dp(20), 0], spacing=dp(10), size_hint_y=None, height=dp(52), **kwargs)
-                with self.canvas.before:
-                    Color(*ACCENT) 
-                    self.rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[dp(10)])
-                self.bind(pos=self._update_rect, size=self._update_rect)
-                
-                # İkonu büyütmek için width değerini dp(30)'dan dp(44)'e çıkardık.
-                # Image widget'ı en-boy oranını koruduğu için dikeyde de büyüyecektir.
-                self.lbl = StyledLabel(text="OpenAI ile Tarif Üret", font_size=SIZE_BODY, bold=True, color=TEXT_PRI)
-                self.add_widget(self.lbl)
-                
-            def _update_rect(self, *args):
-                self.rect.pos = self.pos
-                self.rect.size = self.size
-                
-            @property
-            def text(self): return self.lbl.text
-            @text.setter
-            def text(self, val): self.lbl.text = val
-
-        self.generate_btn = RecipeButton()
+        # ── GENERATE BUTTON ────────────────────────────────────────────────────
+        self.generate_btn = GradientButton(
+            text="✨  Generate Recipe with OpenAI",
+            size_hint_y=None,
+            height=dp(52),
+        )
         self.generate_btn.bind(on_release=self._on_generate)
         content.add_widget(self.generate_btn)
 
+        # ── RECIPE OUTPUT BOX ──────────────────────────────────────────────────
         recipe_card = CardWidget(
             orientation="vertical",
             padding=dp(12),
             spacing=dp(6),
         )
         recipe_card.add_widget(StyledLabel(
-            text="Oluşturulan Tarif:",
+            text="📜  Generated Recipe:",
             font_size="13sp",
             bold=True,
             color=ACCENT2,
@@ -113,9 +99,9 @@ class RecipeScreen(Screen):
         recipe_card.add_widget(Divider())
 
         recipe_scroll = ScrollView(do_scroll_x=False)
-        self.recipe_label = StyledLabel(
-            text="Malzeme seç ve 'Tarif Üret'e bas…",
-            font_size=SIZE_BODY,
+        self.recipe_label = Label(
+            text="Select ingredients and tap 'Generate Recipe'…",
+            font_size=SIZE_SMALL,
             color=TEXT_SEC,
             halign="left",
             valign="top",
@@ -123,7 +109,10 @@ class RecipeScreen(Screen):
             markup=True,
         )
         self.recipe_label.bind(
-            texture_size=lambda inst, val: setattr(inst, "height", val[1] + dp(24))
+            texture_size=lambda inst, val: setattr(inst, "height", val[1] + dp(16))
+        )
+        self.recipe_label.bind(
+            width=lambda inst, val: setattr(inst, "text_size", (val, None))
         )
         recipe_scroll.add_widget(self.recipe_label)
         recipe_card.add_widget(recipe_scroll)
@@ -132,14 +121,18 @@ class RecipeScreen(Screen):
         root.add_widget(content)
         self.add_widget(root)
 
+    # ── SCREEN ENTER ──────────────────────────────────────────────────────────
+
     def on_enter(self, *args):
         self._load_ingredients()
+
+    # ── INGREDIENT LOADING ─────────────────────────────────────────────────────
 
     def _load_ingredients(self):
         self.ing_layout.clear_widgets()
         self._ingredient_checkboxes.clear()
         self.ing_layout.add_widget(StyledLabel(
-            text="⏳  Yükleniyor…",
+            text="⏳  Loading…",
             font_size=SIZE_SMALL,
             color=TEXT_SEC,
             size_hint_y=None,
@@ -157,7 +150,7 @@ class RecipeScreen(Screen):
 
         if not categorized:
             self.ing_layout.add_widget(StyledLabel(
-                text="Envanter boş. Önce ürün ekle.",
+                text="Inventory is empty. Add items first.",
                 font_size=SIZE_SMALL,
                 color=TEXT_SEC,
                 size_hint_y=None,
@@ -175,6 +168,8 @@ class RecipeScreen(Screen):
                 self.ing_layout.add_widget(row)
                 self._ingredient_checkboxes[name] = cb
 
+    # ── RECIPE GENERATION ──────────────────────────────────────────────────────
+
     def _on_generate(self, *args):
         if self._streaming:
             return
@@ -183,12 +178,12 @@ class RecipeScreen(Screen):
             name for name, cb in self._ingredient_checkboxes.items() if cb.active
         ]
         if not selected:
-            self.recipe_label.text = "[color=ef4444]⚠️ En az bir malzeme seçmelisiniz.[/color]"
+            self.recipe_label.text = "[color=ef4444]⚠️ Please select at least one ingredient.[/color]"
             return
 
         self._streaming = True
         self.generate_btn.disabled = True
-        self.generate_btn.text = "⏳  Üretiliyor…"
+        self.generate_btn.text = "⏳  Generating…"
         self.recipe_label.color = TEXT_PRI
         self.recipe_label.text = ""
 
@@ -198,7 +193,7 @@ class RecipeScreen(Screen):
 
     def _stream_recipe(self, ingredients: list):
         for chunk in api_client.generate_recipe_stream(ingredients):
-            final_chunk = chunk  
+            final_chunk = chunk  # capture for lambda closure
             Clock.schedule_once(lambda dt, c=final_chunk: self._append_text(c))
         Clock.schedule_once(self._on_stream_done)
 
@@ -208,4 +203,4 @@ class RecipeScreen(Screen):
     def _on_stream_done(self, *args):
         self._streaming = False
         self.generate_btn.disabled = False
-        self.generate_btn.text = "Tekrar Üret"
+        self.generate_btn.text = "✨  Generate Again"

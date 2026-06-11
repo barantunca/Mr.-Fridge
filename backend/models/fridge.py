@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
-# Base sınıfını uygulamanın core veya db dosyasından import ettiğini varsayıyoruz
+# Import Base from the application's core/database module
 from core.database import Base
 
 
@@ -13,8 +13,8 @@ class Fridge(Base):
     name = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Performans: lazy="selectin" ile evin içindeki eşyalar tek bir SQL sorgusuyla hızlıca çekilir.
-    # N+1 sorgu problemini engeller.
+    # Performance: lazy="selectin" fetches fridge items in a single SQL query,
+    # avoiding the N+1 query problem.
     items = relationship(
         "Item", back_populates="fridge", cascade="all, delete-orphan", lazy="selectin"
     )

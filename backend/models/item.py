@@ -8,7 +8,7 @@ class Item(Base):
     __tablename__ = "items"
 
     id = Column(Integer, primary_key=True, index=True)
-    # house_id yerine fridge_id yapıldı ve fridges.id'ye bağlandı
+    # Changed from house_id to fridge_id, linked to fridges.id
     fridge_id = Column(
         Integer,
         ForeignKey("fridges.id", ondelete="CASCADE"),
@@ -16,23 +16,23 @@ class Item(Base):
         index=True,
     )
 
-    # Eşyanın adı ("Süt", "Elma" vb.)
+    # Item name (e.g. "Milk", "Apple")
     name = Column(String, nullable=False, index=True)
 
-    # Eşyanın kategorisi ("Süt Ürünleri", "Meyve" vb.)
+    # Item category (e.g. "Dairy", "Fruit")
     category = Column(String, nullable=True)
 
     added_at = Column(DateTime, default=datetime.utcnow)
 
-    # İlişki House yerine Fridge'e yönlendirildi
+    # Relationship pointing to Fridge instead of House
     fridge = relationship("Fridge", back_populates="items")
 
-    # --- SETTER MANTIĞI (Veri Temizleme) ---
+    # --- SETTER LOGIC (Data Normalization) ---
     @validates("name")
     def validate_and_format_name(self, key, value):
         if not value:
-            raise ValueError("Eşya adı boş olamaz.")
-        # Boşlukları temizle ve her kelimenin ilk harfini büyüt (Title Case)
+            raise ValueError("Item name cannot be empty.")
+        # Strip whitespace and title-case each word
         return " ".join(value.strip().split()).title()
 
     @validates("category")
@@ -41,7 +41,7 @@ class Item(Base):
             return " ".join(value.strip().split()).title()
         return value
 
-    # --- GETTER MANTIĞI (Özelleştirilmiş Çıktı) ---
+    # --- GETTER LOGIC (Custom Output) ---
     @property
     def display_info(self):
         if self.category:

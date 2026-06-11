@@ -8,7 +8,7 @@ router = APIRouter(prefix="/recipe", tags=["Recipe"])
 @router.post("/generate")
 async def generate_recipe(request: RecipeGenerateRequest):
     """
-    Seçilen malzemeleri OpenAI'a yollar ve Türkçe yemek tarifini anlık (stream) olarak döner.
+    Sends the selected ingredients to OpenAI and streams back a recipe in real time (SSE).
     """
     return StreamingResponse(
         generate_recipe_stream(request.ingredients), 

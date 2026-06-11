@@ -17,7 +17,7 @@ router = APIRouter(prefix="/inventory", tags=["Inventory"])
 @router.post("/add")
 async def add_item(request: ItemCreateRequest, db: AsyncSession = Depends(get_db)):
     """
-    Mobil uygulamadan gelen eşyayı veritabanına kaydeder.
+    Receives an item from the mobile app and saves it to the database.
     """
     new_item = await add_item_to_inventory(
         db=db,
@@ -25,13 +25,13 @@ async def add_item(request: ItemCreateRequest, db: AsyncSession = Depends(get_db
         item_name=request.name,
         category=request.category,
     )
-    return {"status": "success", "message": f"{new_item.name} envantere eklendi."}
+    return {"status": "success", "message": f"{new_item.name} has been added to the inventory."}
 
 
 @router.get("/{fridge_id}/categorized", response_model=Dict[str, List[str]])
 async def get_categorized_inventory(fridge_id: int, db: AsyncSession = Depends(get_db)):
     """
-    Yemek tarifi sekmesi açıldığında çalışır (Önbelleklidir).
+    Called when the recipe tab is opened (cached).
     """
     return await get_categorized_inventory_for_recipe(db=db, fridge_id=fridge_id)
 
@@ -39,8 +39,8 @@ async def get_categorized_inventory(fridge_id: int, db: AsyncSession = Depends(g
 @router.get("/{fridge_id}/items")
 async def get_all_items(fridge_id: int, db: AsyncSession = Depends(get_db)):
     """
-    Buzdolabındaki tüm eşyaları id, isim ve kategoriyle döner.
-    Frontend'in silme işlemi için item id'lerine ihtiyacı var.
+    Returns all items in the fridge with their id, name, and category.
+    The frontend needs item IDs for deletion operations.
     """
     return await get_all_items_for_fridge(db=db, fridge_id=fridge_id)
 
@@ -48,9 +48,9 @@ async def get_all_items(fridge_id: int, db: AsyncSession = Depends(get_db)):
 @router.delete("/delete/{item_id}")
 async def delete_item(item_id: int, db: AsyncSession = Depends(get_db)):
     """
-    Verilen id'ye sahip eşyayı veritabanından siler.
+    Deletes the item with the given ID from the database.
     """
     deleted = await delete_item_from_inventory(db=db, item_id=item_id)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Eşya bulunamadı.")
-    return {"status": "success", "message": f"Eşya (id={item_id}) silindi."}
+        raise HTTPException(status_code=404, detail="Item not found.")
+    return {"status": "success", "message": f"Item (id={item_id}) has been deleted."}

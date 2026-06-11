@@ -1,52 +1,52 @@
 """
-api_key_store.py — Merkezi OpenAI API key yöneticisi.
-Key buradan okunur/yazılır; llm_service ve vision_service buraya başvurur.
+api_key_store.py — Centralized OpenAI API key manager.
+The key is read/written here; llm_service and vision_service reference this module.
 """
 import os
 import pathlib
 from dotenv import load_dotenv
 
-# .env dosyasının konumu (backend/ klasörü)
+# Location of the .env file (backend/ directory)
 _ENV_PATH = pathlib.Path(__file__).parent.parent / ".env"
 
 
 def _load_from_env():
-    """Uygulama başlarken .env'den key'i oku."""
+    """Read the key from .env on application startup."""
     load_dotenv(dotenv_path=_ENV_PATH, override=True)
     return os.getenv("OPENAI_API_KEY", "")
 
 
-# Başlangıçta yükle
+# Load on startup
 _current_key: str = _load_from_env()
 
 
 def get_api_key() -> str:
-    """Mevcut API key'i döndür."""
+    """Return the current API key."""
     return _current_key
 
 
 def set_api_key(new_key: str) -> None:
     """
-    Yeni API key'i ayarla:
-    1. os.environ'u güncelle (anlık etki)
-    2. backend/.env dosyasına yaz (kalıcı)
-    3. llm_service ve vision_service client'larını sıfırla
+    Set a new API key:
+    1. Update os.environ (immediate effect)
+    2. Write to backend/.env (persistent)
+    3. Reset llm_service and vision_service clients (lazy re-init)
     """
     global _current_key
     _current_key = new_key.strip()
 
-    # os.environ güncelle
+    # Update os.environ
     os.environ["OPENAI_API_KEY"] = _current_key
 
-    # .env dosyasına yaz (varsa güncelle, yoksa oluştur)
+    # Write to .env file (create if not exists, update if exists)
     _write_env_file(_current_key)
 
-    # Servis client'larını sıfırla (lazy re-init için)
+    # Reset service clients (for lazy re-initialization)
     _reset_clients()
 
 
 def _write_env_file(key: str) -> None:
-    """backend/.env dosyasını yazar/günceller."""
+    """Writes/updates the backend/.env file."""
     env_path = _ENV_PATH
     lines = []
 
@@ -54,7 +54,7 @@ def _write_env_file(key: str) -> None:
         with open(env_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
 
-    # OPENAI_API_KEY satırını güncelle veya ekle
+    # Update or append the OPENAI_API_KEY line
     key_line = f"OPENAI_API_KEY={key}\n"
     found = False
     for i, line in enumerate(lines):
@@ -70,7 +70,7 @@ def _write_env_file(key: str) -> None:
 
 
 def _reset_clients() -> None:
-    """llm_service ve vision_service'deki cached client'ları sıfırla."""
+    """Reset cached clients in llm_service and vision_service."""
     try:
         import services.llm_service as llm
         llm._client = None
@@ -85,6 +85,6 @@ def _reset_clients() -> None:
 
 
 def has_valid_key() -> bool:
-    """Geçerli bir key var mı?"""
+    """Returns True if a valid key is configured."""
     k = _current_key
     return bool(k) and len(k) > 20 and not k.startswith("sk-test")

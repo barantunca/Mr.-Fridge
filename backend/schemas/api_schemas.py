@@ -2,13 +2,13 @@ from pydantic import BaseModel
 from typing import List
 
 
-# Envantere eşya eklerken mobil uygulamadan beklediğimiz veri
+# Data expected from the mobile app when adding an item to the inventory
 class ItemCreateRequest(BaseModel):
-    fridge_id: int  # house_id yerine fridge_id oldu
+    fridge_id: int  # Changed from house_id to fridge_id
     name: str
-    category: str = "Diğer"
+    category: str = "Other"
 
 
-# Tarif üretmek için mobil uygulamadan beklediğimiz malzeme listesi
+# Ingredient list expected from the mobile app for recipe generation
 class RecipeGenerateRequest(BaseModel):
     ingredients: List[str]
