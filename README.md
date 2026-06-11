@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🧊 Mr. Fridge
+#  Mr. Fridge
 
 **AI-powered smart fridge inventory manager & recipe generator**
 
@@ -16,7 +16,7 @@
 
 ---
 
-## 📖 Table of Contents
+##  Table of Contents
 
 - [Overview](#-overview)
 - [Features](#-features)
@@ -33,7 +33,7 @@
 
 ---
 
-## 🔍 Overview
+##  Overview
 
 **Mr. Fridge** is a cross-platform mobile application that helps you manage your refrigerator's contents using AI. Simply scan food items with your phone's camera, and GPT-4o Vision automatically identifies them. When you're wondering what to cook, Mr. Fridge generates a creative, step-by-step recipe based on what you have — streamed in real time.
 
@@ -41,22 +41,22 @@ The project follows a **client-server architecture**: a **FastAPI** async backen
 
 ---
 
-## ✨ Features
+##  Features
 
 | Feature | Description |
 |---|---|
-| 📷 **AI Camera Scan** | Capture a photo of any food item; GPT-4o Vision identifies it automatically |
-| 📦 **Smart Inventory** | Add, browse, and delete items; everything is persisted in a local SQLite database |
-| 🍳 **Recipe Generation** | Select ingredients from your fridge, get a full recipe streamed token-by-token |
-| 🗂️ **Auto-Categorization** | Items are automatically grouped (Dairy, Fruit, Vegetable, Meat & Fish, etc.) |
-| ✍️ **Manual Entry** | Add items manually when camera scanning isn't needed |
-| 🔑 **API Key Management** | Set, update, and remove your OpenAI API key directly from the app settings |
-| 📊 **Fridge Dashboard** | See total item count, fill percentage, and urgency notifications at a glance |
-| ⚡ **Streaming Responses** | Recipe text appears word-by-word via Server-Sent Events for a natural feel |
+|  **AI Camera Scan** | Capture a photo of any food item; GPT-4o Vision identifies it automatically |
+|  **Smart Inventory** | Add, browse, and delete items; everything is persisted in a local SQLite database |
+|  **Recipe Generation** | Select ingredients from your fridge, get a full recipe streamed token-by-token |
+|  **Auto-Categorization** | Items are automatically grouped (Dairy, Fruit, Vegetable, Meat & Fish, etc.) |
+|  **Manual Entry** | Add items manually when camera scanning isn't needed |
+|  **API Key Management** | Set, update, and remove your OpenAI API key directly from the app settings |
+|  **Fridge Dashboard** | See total item count, fill percentage, and urgency notifications at a glance |
+|  **Streaming Responses** | Recipe text appears word-by-word via Server-Sent Events for a natural feel |
 
 ---
 
-## 🏗️ Architecture
+##  Architecture
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -82,7 +82,7 @@ The project follows a **client-server architecture**: a **FastAPI** async backen
 
 ---
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 Mr.-Fridge/
@@ -129,7 +129,7 @@ Mr.-Fridge/
 
 ---
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Prerequisites
 
@@ -191,13 +191,13 @@ python main.py
 
 ---
 
-## 📱 Usage
+##  Usage
 
 1. **Start the backend** server (`uvicorn main:app --reload`).
 2. **Launch the frontend** (`python main.py`).
 3. **Add items** using the central **+** FAB button:
-   - **📷 Take Photo** — point the camera at a food item and tap *Start Scan*.
-   - **✍️ Manual Entry** — type the item name and category.
+   - ** Take Photo** — point the camera at a food item and tap *Start Scan*.
+   - ** Manual Entry** — type the item name and category.
 4. **Browse inventory** in the **Inventory** tab.
 5. **Generate a recipe** in the **Recipes** tab — check the ingredients you want to use and tap *Generate with OpenAI*.
 6. **Manage your API key** in the **Profile** tab → *Account Settings*.
@@ -227,7 +227,7 @@ Quick endpoint summary:
 
 ---
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 ### Backend
 | Technology | Purpose |
@@ -250,7 +250,7 @@ Quick endpoint summary:
 
 ---
 
-## 🤝 Contributing
+##  Contributing
 
 Contributions are welcome! Please follow these steps:
 
